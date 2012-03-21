@@ -78,7 +78,7 @@ class MongoEngineResource(Resource):
         class Meta:
             object_class = document_type
 
-        return DocumentDeclarativeMetaclass('%sResource' % document_type.__name__, (DocumentResource,), {'Meta': Meta})
+        return DocumentDeclarativeMetaclass('%sResource' % document_type.__name__, (MongoEngineResource,), {'Meta': Meta})
     
     @classmethod
     def api_field_from_mongoengine_field(self, f, default=tasty_fields.CharField):

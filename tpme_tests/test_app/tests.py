@@ -12,6 +12,8 @@ class SimpleTest(unittest.TestCase):
         
         p1 = Person(name="Person 1")
         p1.save()
+        p2 = Person(name="Person 2")
+        p2.save()
         Customer(person=p1).save()
         
         ep1 = EmbeddedPerson(name="Embeded 1")
