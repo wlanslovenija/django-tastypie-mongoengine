@@ -1,11 +1,11 @@
 from tastypie import fields as tasty_fields
-from tastypie.exceptions import ImmediateHttpResponse, NotFound
-from tastypie.http import *
 from tastypie.resources import Resource, DeclarativeMetaclass
 from tastypie.bundle import Bundle
+from tastypie.exceptions import NotFound
 
 from mongoengine import EmbeddedDocument
 from mongoengine import fields as mongo_fields
+from mongoengine.queryset import DoesNotExist
 
 from . import fields
 
@@ -143,6 +143,12 @@ class MongoEngineResource(Resource):
         return final_fields
     
     def get_resource_uri(self, bundle_or_obj):
+        """
+        Handles generating a resource URI for a single resource.
+
+        Uses the model's ``pk`` in order to create the URI.
+        """
+        
         kwargs = {
             'resource_name': self._meta.resource_name,
         }
@@ -165,4 +171,30 @@ class MongoEngineResource(Resource):
         return self.get_object_list(request)
         
     def obj_get(self, request=None, **kwargs):
-        return self.get_object_list(request).get(pk=kwargs['pk'])
+        """
+        A mongoengine-specific implementation of ``obj_get``.
+
+        Takes optional ``kwargs``, which are used to narrow the query to find
+        the instance.
+        """
+        try:
+            return self.get_object_list(request).get(**kwargs)
+        except DoesNotExist:
+            raise NotFound("A model instance matching the provided arguments could not be found.")
+    
+    def obj_delete(self, request=None, **kwargs):
+        """
+        A mongoengine-specific implementation of ``obj_delete``.
+
+        Takes optional ``kwargs``, which are used to narrow the query to find
+        the instance.
+        """
+        self.obj_get(request, **kwargs).delete()
+    
+    def obj_delete_list(self, request=None, **kwargs):
+        """
+        A mongoengine-specific implementation of ``obj_delete_list``.
+
+        Takes optional ``kwargs``, which can be used to narrow the query.
+        """
+        self.obj_get_list(request, **kwargs).delete()
