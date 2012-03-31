@@ -10,7 +10,7 @@ v1_api.register(CustomerResource())
 v1_api.register(EmbededDocumentFieldTestResource())
 v1_api.register(DictFieldTestResource())
 v1_api.register(ListFieldTestResource())
-v1_api.register(EmbeddedListFieldTestResource())
+v1_api.register(EmbeddedSortedListFieldTestResource())
 
 urlpatterns = patterns('',
     (r'^api/', include(v1_api.urls)),

@@ -3,7 +3,7 @@ from ..documents import *
 from tastypie_mongoengine.resources import MongoEngineResource, MongoEngineListResource
 from tastypie_mongoengine.fields import (   EmbeddedDocumentField, 
                                             EmbeddedListField,
-                                            EmbeddedCollection,
+                                            EmbeddedSortedListField,
                                         )
 
 from tastypie.authorization import Authorization
@@ -44,8 +44,8 @@ class ListFieldTestResource(MongoEngineResource):
         authorization = Authorization()
 
 
-class EmbeddedListFieldTestResource(MongoEngineResource):
-    embeddedlist = EmbeddedCollection(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
+class EmbeddedSortedListFieldTestResource(MongoEngineResource):
+    embeddedlist = EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
     
     class Meta:
         queryset = EmbeddedListFieldTest.objects.all()

@@ -123,16 +123,16 @@ class EmbeddedDocumentField(ToOneField):
             
         return self.fk_resource.full_hydrate(self.fk_bundle)
 
-class EmbeddedCollection(ToManyField):
+class EmbeddedSortedListField(ToManyField):
     """
-        EmbeddedCollection allows for operating on the sub resources
+        EmbeddedSortedListField allows for operating on the sub resources
         individually, through the index based collection.
     """
     is_related = False
     is_m2m = False
 
     def __init__(self, of, attribute, related_name=None, default=NOT_PROVIDED, null=False, blank=False, readonly=False, full=False, unique=False, help_text=None):
-        super(EmbeddedCollection, self).__init__(to=of, 
+        super(EmbeddedSortedListField, self).__init__(to=of, 
                                                  attribute=attribute,
                                                  related_name=related_name,
                                                  # default=default, 
@@ -172,6 +172,6 @@ class EmbeddedCollection(ToManyField):
     
     @property
     def to_class(self):
-        base = super(EmbeddedCollection, self).to_class
+        base = super(EmbeddedSortedListField, self).to_class
         return lambda: base(self._resource(), self.instance_name)
     

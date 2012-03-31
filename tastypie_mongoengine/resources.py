@@ -64,7 +64,7 @@ class MongoEngineResource(ModelResource):
     def base_urls(self):
         base = super(MongoEngineResource, self).base_urls()
 
-        embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedCollection))
+        embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedSortedListField))
         
         embedded_urls = []
 
