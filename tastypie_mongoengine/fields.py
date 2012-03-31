@@ -23,51 +23,6 @@ class ListField(ApiField):
             return None
         return value 
 
-class EmbeddedListField(ToManyField):
-    """
-        Represents a list of embedded objects. It must be used in conjunction
-        with EmbeddedDocumentField.
-        Does not allow for manipulation (reordering) of List elements. Use
-        EmbeddedCollection instead.
-    """
-    is_related = False
-    is_m2m = False
-
-    def __init__(self, of, attribute, related_name=None, default=NOT_PROVIDED, null=False, blank=False, readonly=False, full=False, unique=False, help_text=None):
-        super(EmbeddedListField, self).__init__(to=of, 
-                                                 attribute=attribute,
-                                                 related_name=related_name,
-                                                 # default=default, 
-                                                 null=null, 
-                                                 # blank=blank, 
-                                                 # readonly=readonly, 
-                                                 full=full, 
-                                                 unique=unique, 
-                                                 help_text=help_text)
-    def dehydrate(self, bundle):
-        if not bundle.obj or not bundle.obj.pk:
-            if not self.null:
-                raise ApiFieldError("The document '%r' does not have a primary key and can not be d in a ToMany context." % bundle.obj)
-            return []
-        if not getattr(bundle.obj, self.attribute):
-            if not self.null:
-                raise ApiFieldError("The document '%r' has an empty attribute '%s' and doesn't all a null value." % (bundle.obj, self.attribute))
-            return []
-        self.m2m_resources = []
-        m2m_dehydrated = []
-        # TODO: Also model-specific and leaky. Relies on there being a
-        #       ``Manager`` there.
-        # NOTE: only had to remove .all()
-        for m2m in getattr(bundle.obj, self.attribute):
-            m2m_resource = self.get_related_resource(m2m)
-            m2m_bundle = Bundle(obj=m2m)
-            self.m2m_resources.append(m2m_resource)
-            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
-        return m2m_dehydrated
-
-    def hydrate(self, bundle):
-        return [b.obj for b in self.hydrate_m2m(bundle)]
-
 class DictField(ApiField):
     dehydrated_type     =   'dict'
     
@@ -123,16 +78,19 @@ class EmbeddedDocumentField(ToOneField):
             
         return self.fk_resource.full_hydrate(self.fk_bundle)
 
-class EmbeddedSortedListField(ToManyField):
+
+class EmbeddedListField(ToManyField):
     """
-        EmbeddedSortedListField allows for operating on the sub resources
-        individually, through the index based collection.
+        Represents a list of embedded objects. It must be used in conjunction
+        with EmbeddedDocumentField.
+        Does not allow for manipulation (reordering) of List elements. Use
+        EmbeddedSortedList instead.
     """
     is_related = False
     is_m2m = False
 
     def __init__(self, of, attribute, related_name=None, default=NOT_PROVIDED, null=False, blank=False, readonly=False, full=False, unique=False, help_text=None):
-        super(EmbeddedSortedListField, self).__init__(to=of, 
+        super(EmbeddedListField, self).__init__(to=of, 
                                                  attribute=attribute,
                                                  related_name=related_name,
                                                  # default=default, 
@@ -142,6 +100,34 @@ class EmbeddedSortedListField(ToManyField):
                                                  full=full, 
                                                  unique=unique, 
                                                  help_text=help_text)
+    def dehydrate(self, bundle):
+        if not bundle.obj or not bundle.obj.pk:
+            if not self.null:
+                raise ApiFieldError("The document '%r' does not have a primary key and can not be d in a ToMany context." % bundle.obj)
+            return []
+        if not getattr(bundle.obj, self.attribute):
+            if not self.null:
+                raise ApiFieldError("The document '%r' has an empty attribute '%s' and doesn't all a null value." % (bundle.obj, self.attribute))
+            return []
+        self.m2m_resources = []
+        m2m_dehydrated = []
+        
+        for m2m in getattr(bundle.obj, self.attribute):
+            m2m_resource = self.get_related_resource(m2m)
+            m2m_bundle = Bundle(obj=m2m)
+            self.m2m_resources.append(m2m_resource)
+            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
+        return m2m_dehydrated
+
+    def hydrate(self, bundle):
+        return [b.obj for b in self.hydrate_m2m(bundle)]
+
+
+class EmbeddedSortedListField(EmbeddedListField):
+    """
+        EmbeddedSortedListField allows for operating on the sub resources
+        individually, through the index based collection.
+    """
 
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
@@ -154,9 +140,7 @@ class EmbeddedSortedListField(ToManyField):
             return []
         self.m2m_resources = []
         m2m_dehydrated = []
-        # TODO: Also document-specific and leaky. Relies on there being a
-        #       ``Manager`` there.
-        # NOTE: only had to remove .all()
+        
         for index, m2m in enumerate(getattr(bundle.obj, self.attribute)):
             m2m.pk = index
             m2m.parent = bundle.obj
@@ -165,10 +149,6 @@ class EmbeddedSortedListField(ToManyField):
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
         return m2m_dehydrated
-
-    def hydrate(self, bundle):
-        return [b.obj for b in self.hydrate_m2m(bundle)]
-
     
     @property
     def to_class(self):

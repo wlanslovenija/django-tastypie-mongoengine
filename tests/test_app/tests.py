@@ -26,7 +26,7 @@ class SimpleTest(unittest.TestCase):
         
         ListFieldTest(stringlist=('a', 'b', 'c'), intlist=(1, 2, 3)).save()
         
-        EmbeddedListFieldTest(embeddedlist=(ep2, ep1, ep2)).save()
+        EmbeddedListFieldTest(embeddedlist=[ep3, ep1, ep2]).save()
         
         
     def test_basic_addition(self):

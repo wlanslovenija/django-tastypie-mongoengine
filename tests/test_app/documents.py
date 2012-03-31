@@ -23,4 +23,4 @@ class EmbeddedListFieldTest(Document):
     """
         A document with lists of embedded objects
     """
-    embeddedlist = ListField(EmbeddedDocumentField(EmbeddedPerson))
+    embeddedlist = SortedListField(EmbeddedDocumentField(EmbeddedPerson))
