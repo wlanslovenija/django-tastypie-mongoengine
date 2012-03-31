@@ -7,6 +7,16 @@ from tastypie.fields import (ApiField,
 from tastypie.bundle import Bundle
 from tastypie.utils import dict_strip_unicode_keys
 
+class ObjectId(ApiField):
+    def __init__(self, **kwargs):
+        super(ObjectId, self).__init__(**kwargs)
+        
+        self.readonly = True
+        self.unique = True
+        self.blank = False
+        self.null = False
+        self.help_text = "Id Field"
+
 class ListField(ApiField):
     """
         Represents a list of simple items - strings, ints, bools, etc. For

@@ -116,6 +116,8 @@ class MongoEngineResource(ModelResource):
             result = fields.DictField
         elif f.__class__.__name__ in ('ListField'):
             result = fields.ListField
+        elif f.__class__.__name__ in ('ObjectIdField'):
+            result = fields.ObjectId
         
         return result
     
