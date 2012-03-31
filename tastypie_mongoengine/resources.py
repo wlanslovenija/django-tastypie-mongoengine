@@ -22,7 +22,6 @@ class MongoEngineModelDeclarativeMetaclass(ModelDeclarativeMetaclass):
             if hasattr(meta, 'object_class') and not hasattr(meta, 'queryset'):
                 if hasattr(meta.object_class, 'objects'):
                     setattr(meta, 'queryset', meta.object_class.objects.all())
-            print meta.object_class
                 
         new_class = super(ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
@@ -66,7 +65,7 @@ class MongoEngineResource(ModelResource):
         base = super(MongoEngineResource, self).base_urls()
 
         embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedCollection))
-
+        
         embedded_urls = []
 
         for name, obj in embedded:
@@ -115,7 +114,9 @@ class MongoEngineResource(ModelResource):
             result = tastypie_fields.FileField
         elif f.__class__.__name__ in ('DictField'):
             result = fields.DictField
-
+        elif f.__class__.__name__ in ('ListField'):
+            result = fields.ListField
+        
         return result
     
     @classmethod
@@ -202,7 +203,7 @@ class MongoEngineListResource(MongoEngineResource):
         self.parent = parent
         self.attribute = attribute
         self.instance = None
-        super(MongoListResource, self).__init__(api_name)
+        super(MongoEngineListResource, self).__init__(api_name)
 
 
     def dispatch(self, request_type, request, **kwargs):
@@ -312,21 +313,21 @@ class MongoEngineListResource(MongoEngineResource):
         else:
             obj = bundle_or_obj
 
-
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute
         }
-        if self.instance:
-            kwargs['pk'] = self.instance.pk
-
+        
+        if hasattr(obj, 'parent'):
+            kwargs['pk'] = obj.parent._id
+        else:
+            kwargs['pk'] = self.instance.id
 
         kwargs['index'] = obj.pk
 
-
         if self._meta.api_name is not None:
             kwargs['api_name'] = self._meta.api_name
-
+        
         ret = self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)
 
         return ret

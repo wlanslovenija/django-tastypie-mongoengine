@@ -32,7 +32,6 @@ class EmbeddedListField(ToManyField):
     """
     is_related = False
     is_m2m = False
-    help_text = 'A single related resource. A set of nested resource data.'
 
     def __init__(self, of, attribute, related_name=None, default=NOT_PROVIDED, null=False, blank=False, readonly=False, full=False, unique=False, help_text=None):
         super(EmbeddedListField, self).__init__(to=of, 
@@ -87,6 +86,7 @@ class EmbeddedDocumentField(ToOneField):
     """
     is_related = False
     dehydrated_type     =   'embedded'
+    help_text = 'A single related resource. A set of nested resource data.'
 
     def __init__(self, embedded, attribute, null=False, help_text=None):
         '''
@@ -102,7 +102,7 @@ class EmbeddedDocumentField(ToOneField):
                                                 )
     def dehydrate(self, obj):
         out = super(EmbeddedDocumentField, self).dehydrate(obj).data
-        del out["resource_uri"], out["id"]
+        del out["resource_uri"]
         return out
 
     def hydrate(self, bundle):
@@ -169,7 +169,9 @@ class EmbeddedCollection(ToManyField):
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
 
+    
     @property
     def to_class(self):
         base = super(EmbeddedCollection, self).to_class
         return lambda: base(self._resource(), self.instance_name)
+    
