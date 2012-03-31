@@ -1,4 +1,5 @@
-from ..documents import *
+# If we have from ..documents import * it doesn't work. Anybody knows why?
+from test_app.documents import *
 
 from tastypie_mongoengine.resources import MongoEngineResource, MongoEngineListResource
 from tastypie_mongoengine.fields import (   EmbeddedDocumentField, 
