@@ -20,8 +20,7 @@ class SimpleTest(unittest.TestCase):
         ep2 = EmbeddedPerson(name="Embeded 2")
         ep3 = EmbeddedPerson(name="Embeded 3")
         
-        EmbededDocumentFieldTest(costumer=ep1).save()
-        EmbededDocumentFieldTest(costumer=ep3).save()
+        EmbededDocumentFieldTest(customer=ep1).save()
         
         DictFieldTest(dictionary={'a': 'abc', 'number': 34}).save()
         

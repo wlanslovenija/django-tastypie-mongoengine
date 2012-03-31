@@ -10,7 +10,7 @@ class Customer(Document):
     person = ReferenceField(Person)
 
 class EmbededDocumentFieldTest(Document):
-    costumer = EmbeddedDocumentField(EmbeddedPerson)
+    customer = EmbeddedDocumentField(EmbeddedPerson)
 
 class DictFieldTest(Document):
     dictionary = DictField()

@@ -1,8 +1,15 @@
-from tastypie_mongoengine.resources import MongoEngineResource
+from ..documents import *
+
+from tastypie_mongoengine.resources import MongoEngineResource, MongoEngineListResource
+from tastypie_mongoengine.fields import (   ListField, 
+                                            DictField, 
+                                            EmbeddedDocumentField, 
+                                            EmbeddedListField,
+                                            EmbeddedCollection,
+                                        )
 
 from tastypie.authorization import Authorization
-
-from ..documents import *
+from tastypie.fields import ForeignKey
 
 class PersonResource(MongoEngineResource):
     class Meta:
@@ -11,12 +18,16 @@ class PersonResource(MongoEngineResource):
         authorization = Authorization()
 
 class CustomerResource(MongoEngineResource):
+    person = ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
+    
     class Meta:
         queryset = Customer.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete', 'patch']
         authorization = Authorization()
 
 class EmbededDocumentFieldTestResource(MongoEngineResource):
+    customer = EmbeddedDocumentField(embedded='test_app.api.resources.PersonResource', attribute='customer')
+                                               
     class Meta:
         queryset = EmbededDocumentFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete', 'patch']
