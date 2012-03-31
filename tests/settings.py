@@ -15,7 +15,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'tpme_tests.urls'
+ROOT_URLCONF = 'tests.urls'
 
 AUTHENTICATION_BACKENDS = (
     'mongoengine.django.auth.MongoEngineBackend',
@@ -23,7 +23,7 @@ AUTHENTICATION_BACKENDS = (
 
 SESSION_ENGINE = 'mongoengine.django.sessions'
 
-TEST_RUNNER = 'tpme_tests.test_runner.TPMETestSuiteRunner'
+TEST_RUNNER = 'tests.test_runner.TPMETestSuiteRunner'
 
 INSTALLED_APPS = (
     'tastypie',
