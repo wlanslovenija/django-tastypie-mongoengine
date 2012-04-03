@@ -263,7 +263,11 @@ class MongoEngineListResource(MongoEngineResource):
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
-        index = int(kwargs['index'])
+        if hasattr(kwargs, 'index'):
+            index = int(kwargs['index'])
+        else:
+            index = 0
+        
         try:
             bundle.obj = self.get_object_list(request)[index]
         except IndexError:

@@ -73,7 +73,7 @@ class EmbeddedDocumentField(ToOneField):
     def hydrate(self, bundle):
         return super(EmbeddedDocumentField, self).hydrate(bundle).obj
 
-    def build_related_resource(self, value):
+    def build_related_resource(self, value, **kwargs):
         """
         Used to ``hydrate`` the data provided. If just a URL is provided,
         the related resource is attempted to be loaded. If a
