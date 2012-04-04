@@ -6,6 +6,7 @@ class ObjectId(fields.ApiField):
     """
     Field for representing ObjectId from Mongo.
     """
+    
     help_text = "ID field"
     
     def __init__(self, **kwargs):
@@ -20,6 +21,7 @@ class EmbeddedDocumentField(fields.ToOneField):
     """
     Embeds a resource inside another resource just like you would in Mongo.
     """
+    
     is_related = False
     dehydrated_type = 'embedded'
     help_text = "A single related resource. A set of nested resource data."
@@ -30,15 +32,17 @@ class EmbeddedDocumentField(fields.ToOneField):
         to a ``document``. Required.
         '''
         super(EmbeddedDocumentField, self).__init__(
-                                                 to=embedded,
-                                                 attribute=attribute,
-                                                 null=null,
-                                                 full=True,
-                                                 help_text=help_text,
-                                                )
+            to=embedded,
+            attribute=attribute,
+            null=null,
+            full=True,
+            help_text=help_text,
+        )
+        
     def dehydrate(self, obj):
         out = super(EmbeddedDocumentField, self).dehydrate(obj).data
         del(out['resource_uri'])
+        
         return out
 
     def hydrate(self, bundle):
@@ -51,6 +55,7 @@ class EmbeddedDocumentField(fields.ToOneField):
         dictionary-like structure is provided, a fresh resource is
         created.
         """
+        
         self.fk_resource = self.to_class()
         
         # Try to hydrate the data provided.
@@ -59,7 +64,6 @@ class EmbeddedDocumentField(fields.ToOneField):
             
         return self.fk_resource.full_hydrate(self.fk_bundle)
 
-
 class EmbeddedListField(fields.ToManyField):
     """
     Represents a list of embedded objects. It must be used in conjunction
@@ -67,23 +71,17 @@ class EmbeddedListField(fields.ToManyField):
     Does not allow for manipulation (reordering) of List elements. Use
     EmbeddedSortedList instead.
     """
+    
     is_related = False
     is_m2m = False
 
-    def __init__(self, of, attribute, related_name=None, default=fields.NOT_PROVIDED, null=False, blank=False, readonly=False, full=False, unique=False, help_text=None):
-        super(EmbeddedListField, self).__init__(to=of, 
-            attribute=attribute,
-            related_name=related_name,
-            null=null,
-            full=full, 
-            unique=unique, 
-            help_text=help_text
-        )
+    def __init__(self, of, attribute, **kwargs):
+        super(EmbeddedListField, self).__init__(to=of, attribute=attribute, **kwargs)
     
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
-                raise ApiFieldError("The document '%r' does not have a primary key and can not be d in a ToMany context." % bundle.obj)
+                raise ApiFieldError("The document '%r' does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
@@ -102,7 +100,6 @@ class EmbeddedListField(fields.ToManyField):
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
 
-
 class EmbeddedSortedListField(EmbeddedListField):
     """
     EmbeddedSortedListField allows for operating on the sub resources
@@ -112,7 +109,7 @@ class EmbeddedSortedListField(EmbeddedListField):
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
-                raise ApiFieldError("The document '%r' does not have a primary key and can not be d in a ToMany context." % bundle.obj)
+                raise ApiFieldError("The document '%r' does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
@@ -128,10 +125,10 @@ class EmbeddedSortedListField(EmbeddedListField):
             m2m_bundle = Bundle(obj=m2m)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
+            
         return m2m_dehydrated
     
     @property
     def to_class(self):
         base = super(EmbeddedSortedListField, self).to_class
         return lambda: base(self._resource(), self.instance_name)
-    

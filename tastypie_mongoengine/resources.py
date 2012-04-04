@@ -2,15 +2,22 @@ from django.conf.urls.defaults import url
 from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse, NoReverseMatch
 
-from tastypie.resources import ModelResource, ModelDeclarativeMetaclass
-from tastypie.utils import trailing_slash, dict_strip_unicode_keys
-from tastypie.exceptions import ImmediateHttpResponse, NotFound
-from tastypie.bundle import Bundle
+from tastypie import resources
+from tastypie import utils
+from tastypie import exceptions
+from tastypie import bundle
 from tastypie import fields as tastypie_fields
 
-from . import fields
+from tastypie_mongoengine import fields
 
-class MongoEngineModelDeclarativeMetaclass(ModelDeclarativeMetaclass):
+class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
+    """
+    This class has the same functionality as its supper ``ModelDeclarativeMetaclass``.
+    Only thing it does diffrently is how it sets ``object_class`` and ``queryset`` attributes.
+    
+    This is an internal class and is not used by the end user of tastypie_mongoengine.
+    """
+    
     def __new__(cls, name, bases, attrs):
         meta = attrs.get('Meta')
         
@@ -22,7 +29,7 @@ class MongoEngineModelDeclarativeMetaclass(ModelDeclarativeMetaclass):
                 if hasattr(meta.object_class, 'objects'):
                     setattr(meta, 'queryset', meta.object_class.objects.all())
                 
-        new_class = super(ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
+        new_class = super(resources.ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
         field_names = new_class.base_fields.keys()
@@ -48,9 +55,9 @@ class MongoEngineModelDeclarativeMetaclass(ModelDeclarativeMetaclass):
 
         return new_class
 
-class MongoEngineResource(ModelResource):
+class MongoEngineResource(resources.ModelResource):
     """
-    Minor enhancements to the stock ModelResource to allow subresources.
+    Minor enhancements to the stock ``ModelResource`` to allow subresources.
     """
     
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
@@ -60,7 +67,6 @@ class MongoEngineResource(ModelResource):
         resource = field.to_class()
         request_type = kwargs.pop('request_type')
         return resource.dispatch(request_type, request, **kwargs)
-
 
     def base_urls(self):
         base = super(MongoEngineResource, self).base_urls()
@@ -72,25 +78,27 @@ class MongoEngineResource(ModelResource):
         for name, obj in embedded:
             embedded_urls.extend([
                 url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" %
-                    (self._meta.resource_name, name, trailing_slash()),
+                    (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
-                    name='api_dispatch_subresource_list'),
+                    name='api_dispatch_subresource_list'
+                ),
 
                 url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\w[\w-]*)%s$" %
-                    (self._meta.resource_name, name, trailing_slash()),
+                    (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
-                    name='api_dispatch_subresource_detail')
-                ])
+                    name='api_dispatch_subresource_detail'
+                ),
+            ])
         return embedded_urls + base
     
     def get_object_list(self, request):
         """
         An ORM-specific implementation of ``get_object_list``.
-
         Returns a queryset that may have been limited by other overrides.
         """
+        
         return self._meta.queryset.clone()
     
     @classmethod
@@ -99,6 +107,7 @@ class MongoEngineResource(ModelResource):
         Returns the field type that would likely be associated with each
         mongoengine type.
         """
+        
         result = default
 
         if f.__class__.__name__ in ('ComplexDateTimeField', 'DateTimeField'):
@@ -128,6 +137,7 @@ class MongoEngineResource(ModelResource):
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated model.
         """
+        
         final_fields = {}
         fields = fields or []
         excludes = excludes or []
@@ -148,7 +158,7 @@ class MongoEngineResource(ModelResource):
             if excludes and name in excludes:
                 continue
 
-            # Might need it in the future
+            # TODO: Might need it in the future
             #if cls.should_skip_field(f):
             #    continue
 
@@ -156,8 +166,8 @@ class MongoEngineResource(ModelResource):
 
             kwargs = {
                 'attribute': name,
-                'unique':    f.unique,
-                'default':   f.default
+                'unique': f.unique,
+                'default': f.default,
             }
 
             if f.required is False:
@@ -171,14 +181,14 @@ class MongoEngineResource(ModelResource):
     def get_resource_uri(self, bundle_or_obj):
         """
         Handles generating a resource URI for a single resource.
-
         Uses the model's ``pk`` in order to create the URI.
         """
+        
         kwargs = {
             'resource_name': self._meta.resource_name,
         }
 
-        if isinstance(bundle_or_obj, Bundle):
+        if isinstance(bundle_or_obj, bundle.Bundle):
             if hasattr(bundle_or_obj.obj, 'pk'):
                 kwargs['pk'] = bundle_or_obj.obj.pk
             else:
@@ -192,8 +202,9 @@ class MongoEngineResource(ModelResource):
         return self._build_reverse_url("api_dispatch_detail", kwargs=kwargs)
 
 class MongoEngineListResource(MongoEngineResource):
-    """An embedded MongoDB list acting as a collection. Used in conjunction with
-       a EmbeddedCollection.
+    """
+    An embedded MongoDB list acting as a collection. Used in conjunction with
+    a EmbeddedCollection.
     """
     
     def base_urls(self):
@@ -207,7 +218,6 @@ class MongoEngineListResource(MongoEngineResource):
         self.attribute = attribute
         self.instance = None
         super(MongoEngineListResource, self).__init__(api_name)
-
 
     def dispatch(self, request_type, request, **kwargs):
         self.instance = self.safe_get(request, **kwargs)
@@ -223,9 +233,8 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.parent.cached_obj_get(request=request, **filters)
         except ObjectDoesNotExist:
-            raise ImmediateHttpResponse(response=HttpGone())
-                                    
-
+            raise exceptions.ImmediateHttpResponse(response=HttpGone())
+        
     def remove_api_resource_names(self, url_dict):
         kwargs_subset = url_dict.copy()
 
@@ -255,7 +264,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.get_object_list(request)[index]
         except IndexError:
-            raise ImmediateHttpResponse(response=HttpGone())
+            raise exceptions.ImmediateHttpResponse(response=HttpGone())
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle = self.full_hydrate(bundle)
@@ -272,7 +281,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             bundle.obj = self.get_object_list(request)[index]
         except IndexError:
-            raise NotFound("A model instance matching the provided arguments could not be found.")
+            raise exceptions.NotFound("A model instance matching the provided arguments could not be found.")
         bundle = self.full_hydrate(bundle)
         new_index = int(bundle.data['id'])
         lst = getattr(self.instance, self.attribute)
@@ -302,8 +311,9 @@ class MongoEngineListResource(MongoEngineResource):
         If a new resource is created, return ``HttpCreated`` (201 Created).
         If an existing resource is modified, return ``HttpAccepted`` (204 No Content).
         """
+        
         deserialized = self.deserialize(request, request.raw_post_data, format=request.META.get('CONTENT_TYPE', 'application/json'))
-        bundle = self.build_bundle(data=dict_strip_unicode_keys(deserialized))
+        bundle = self.build_bundle(data=utils.dict_strip_unicode_keys(deserialized))
         self.is_valid(bundle, request)
         
         try:
@@ -313,9 +323,8 @@ class MongoEngineListResource(MongoEngineResource):
             updated_bundle = self.obj_create(bundle, request=request, **kwargs)
             return HttpCreated(location=self.get_resource_uri(updated_bundle))
 
-
     def get_resource_uri(self, bundle_or_obj):
-        if isinstance(bundle_or_obj, Bundle):
+        if isinstance(bundle_or_obj, bundle.Bundle):
             obj = bundle_or_obj.obj
         else:
             obj = bundle_or_obj

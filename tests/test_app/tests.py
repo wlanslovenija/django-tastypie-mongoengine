@@ -1,7 +1,7 @@
 from django.utils import unittest
 from django.test.client import Client
 
-from . import documents
+from test_app import documents
 
 class SimpleTest(unittest.TestCase):
     apiUrl = '/api/v1/'
@@ -22,6 +22,7 @@ class SimpleTest(unittest.TestCase):
         """
         Gets resource_uri from response location.
         """
+        
         return self.apiUrl + location.split(self.apiUrl)[1]
 
     def test_creating_content(self):
