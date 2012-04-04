@@ -3,7 +3,6 @@ from django.core.exceptions import ObjectDoesNotExist
 from django.core.urlresolvers import reverse, NoReverseMatch
 
 from tastypie.resources import ModelResource, ModelDeclarativeMetaclass
-from tastypie.http import *
 from tastypie.utils import trailing_slash, dict_strip_unicode_keys
 from tastypie.exceptions import ImmediateHttpResponse, NotFound
 from tastypie.bundle import Bundle
@@ -50,7 +49,9 @@ class MongoEngineModelDeclarativeMetaclass(ModelDeclarativeMetaclass):
         return new_class
 
 class MongoEngineResource(ModelResource):
-    """Minor enhancements to the stock ModelResource to allow subresources."""
+    """
+    Minor enhancements to the stock ModelResource to allow subresources.
+    """
     
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
     
@@ -113,9 +114,9 @@ class MongoEngineResource(ModelResource):
         elif f.__class__.__name__ in ('FileField', 'BinaryField'):
             result = tastypie_fields.FileField
         elif f.__class__.__name__ in ('DictField'):
-            result = fields.DictField
+            result = tastypie_fields.DictField
         elif f.__class__.__name__ in ('ListField'):
-            result = fields.ListField
+            result = tastypie_fields.ListField
         elif f.__class__.__name__ in ('ObjectIdField'):
             result = fields.ObjectId
         

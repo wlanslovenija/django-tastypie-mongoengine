@@ -1,63 +1,60 @@
 # If we have from ..documents import * it doesn't work. Anybody knows why?
-from test_app.documents import *
+from test_app import documents
 
-from tastypie_mongoengine.resources import MongoEngineResource, MongoEngineListResource
-from tastypie_mongoengine.fields import (   EmbeddedDocumentField, 
-                                            EmbeddedListField,
-                                            EmbeddedSortedListField,
-                                        )
+from tastypie_mongoengine import resources
+from tastypie_mongoengine import fields
 
-from tastypie.authorization import Authorization
-from tastypie.fields import ForeignKey
+from tastypie import authorization
+from tastypie import fields as tastypie_fields
 
-class PersonResource(MongoEngineResource):
+class PersonResource(resources.MongoEngineResource):
     class Meta:
-        queryset = Person.objects.all()
+        queryset = documents.Person.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class CustomerResource(MongoEngineResource):
-    person = ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
+class CustomerResource(resources.MongoEngineResource):
+    person = tastypie_fields.ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
     
     class Meta:
-        queryset = Customer.objects.all()
+        queryset = documents.Customer.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class EmbededDocumentFieldTestResource(MongoEngineResource):
-    customer = EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
+class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
+    customer = fields.EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
                                                
     class Meta:
-        queryset = EmbededDocumentFieldTest.objects.all()
+        queryset = documents.EmbededDocumentFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class DictFieldTestResource(MongoEngineResource):
+class DictFieldTestResource(resources.MongoEngineResource):
     class Meta:
-        queryset = DictFieldTest.objects.all()
+        queryset = documents.DictFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class ListFieldTestResource(MongoEngineResource):
+class ListFieldTestResource(resources.MongoEngineResource):
     class Meta:
-        queryset = ListFieldTest.objects.all()
+        queryset = documents.ListFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
 
-class EmbeddedSortedListFieldTestResource(MongoEngineResource):
-    embeddedlist = EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
+class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
+    embeddedlist = fields.EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
     
     class Meta:
-        queryset = EmbeddedListFieldTest.objects.all()
+        queryset = documents.EmbeddedListFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class EmbeddedPersonResource(MongoEngineResource):
+class EmbeddedPersonResource(resources.MongoEngineResource):
     class Meta:
-        object_class = EmbeddedPerson
+        object_class = documents.EmbeddedPerson
         allowed_methods = ['get', 'post', 'put', 'delete']
-        authorization = Authorization()
+        authorization = authorization.Authorization()
 
-class EmbeddedPersonListResource(EmbeddedPersonResource, MongoEngineListResource):
+class EmbeddedPersonListResource(EmbeddedPersonResource, resources.MongoEngineListResource):
     pass

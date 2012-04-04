@@ -1,26 +1,26 @@
 from django.utils import unittest
 from django.test.client import Client
 
-from .documents import *
+from . import documents
 
 class SimpleTest(unittest.TestCase):
     apiUrl = '/api/v1/'
     c = Client()
     
     def setUp(self):
-        Person.drop_collection()
-        Customer.drop_collection()
-        EmbededDocumentFieldTest.drop_collection()
-        DictFieldTest.drop_collection()
-        ListFieldTest.drop_collection()
-        EmbeddedListFieldTest.drop_collection()
+        documents.Person.drop_collection()
+        documents.Customer.drop_collection()
+        documents.EmbededDocumentFieldTest.drop_collection()
+        documents.DictFieldTest.drop_collection()
+        documents.ListFieldTest.drop_collection()
+        documents.EmbeddedListFieldTest.drop_collection()
     
     def makeUrl(self, link):
         return self.apiUrl + link + "/"
     
     def getUri(self, location):
         """
-            Gets resource_uri from response location.
+        Gets resource_uri from response location.
         """
         return self.apiUrl + location.split(self.apiUrl)[1]
 
