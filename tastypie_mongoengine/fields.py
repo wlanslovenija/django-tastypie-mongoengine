@@ -81,11 +81,11 @@ class EmbeddedListField(fields.ToManyField):
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
-                raise ApiFieldError("The document '%r' does not have a primary key and can not be in a ToMany context." % bundle.obj)
+                raise ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
-                raise ApiFieldError("The document '%r' has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
+                raise ApiFieldError("The document %r has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
             return []
         self.m2m_resources = []
         m2m_dehydrated = []
@@ -109,11 +109,11 @@ class EmbeddedSortedListField(EmbeddedListField):
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
-                raise ApiFieldError("The document '%r' does not have a primary key and can not be in a ToMany context." % bundle.obj)
+                raise ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
-                raise ApiFieldError("The document '%r' has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
+                raise ApiFieldError("The document %r has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
             return []
         self.m2m_resources = []
         m2m_dehydrated = []
