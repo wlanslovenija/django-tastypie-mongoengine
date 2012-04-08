@@ -1,12 +1,12 @@
 from django.conf.urls.defaults import url
 from django.core.exceptions import ObjectDoesNotExist
-from django.core.urlresolvers import reverse, NoReverseMatch
 
 from tastypie import resources
 from tastypie import utils
 from tastypie import exceptions
 from tastypie import bundle
 from tastypie import fields as tastypie_fields
+from mongoengine import EmbeddedDocument
 
 from tastypie_mongoengine import fields
 
@@ -18,7 +18,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     This is an internal class and is not used by the end user of tastypie_mongoengine.
     """
     
-    def __new__(cls, name, bases, attrs):
+    def __new__(self, name, bases, attrs):
         meta = attrs.get('Meta')
         
         if meta:
@@ -29,21 +29,23 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
                 if hasattr(meta.object_class, 'objects'):
                     setattr(meta, 'queryset', meta.object_class.objects.all())
                 
-        new_class = super(resources.ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
+        new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
         field_names = new_class.base_fields.keys()
 
         for field_name in field_names:
             if field_name == 'resource_uri':
-                continue
+                # Delete resource_uri from fields if this is EmbeddedDocument
+                if meta and issubclass(meta.object_class, EmbeddedDocument):
+                    del(new_class.base_fields[field_name])
             if field_name in new_class.declared_fields:
                 continue
             if len(include_fields) and not field_name in include_fields:
                 del(new_class.base_fields[field_name])
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
-
+        
         # Add in the new fields.
         new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
 
@@ -132,7 +134,7 @@ class MongoEngineResource(resources.ModelResource):
         return result
     
     @classmethod
-    def get_fields(cls, fields=None, excludes=None):
+    def get_fields(self, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated model.
@@ -142,12 +144,12 @@ class MongoEngineResource(resources.ModelResource):
         fields = fields or []
         excludes = excludes or []
 
-        if not cls._meta.object_class:
+        if not self._meta.object_class:
             return final_fields
 
-        for name, f in cls._meta.object_class._fields.iteritems():
+        for name, f in self._meta.object_class._fields.iteritems():
             # If the field name is already present, skip
-            if name in cls.base_fields:
+            if name in self.base_fields:
                 continue
 
             # If field is not present in explicit field listing, skip
@@ -162,7 +164,7 @@ class MongoEngineResource(resources.ModelResource):
             #if cls.should_skip_field(f):
             #    continue
 
-            api_field_class = cls.api_field_from_mongo_field(f)
+            api_field_class = self.api_field_from_mongo_field(f)
 
             kwargs = {
                 'attribute': name,
@@ -175,36 +177,13 @@ class MongoEngineResource(resources.ModelResource):
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
-
-        return final_fields
-    
-    def get_resource_uri(self, bundle_or_obj):
-        """
-        Handles generating a resource URI for a single resource.
-        Uses the model's ``pk`` in order to create the URI.
-        """
         
-        kwargs = {
-            'resource_name': self._meta.resource_name,
-        }
-
-        if isinstance(bundle_or_obj, bundle.Bundle):
-            if hasattr(bundle_or_obj.obj, 'pk'):
-                kwargs['pk'] = bundle_or_obj.obj.pk
-            else:
-                raise NoReverseMatch
-        else:
-            kwargs['pk'] = bundle_or_obj.id
-
-        if self._meta.api_name is not None:
-            kwargs['api_name'] = self._meta.api_name
-
-        return self._build_reverse_url("api_dispatch_detail", kwargs=kwargs)
+        return final_fields
 
 class MongoEngineListResource(MongoEngineResource):
     """
     An embedded MongoDB list acting as a collection. Used in conjunction with
-    a EmbeddedCollection.
+    EmbeddedListField or EmbeddedSortedListField.
     """
     
     def base_urls(self):

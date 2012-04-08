@@ -4,7 +4,7 @@ from tastypie.utils import dict_strip_unicode_keys
 
 class ObjectId(fields.ApiField):
     """
-    Field for representing ObjectId from Mongo.
+    Field for representing ObjectId from MongoDB.
     """
     
     help_text = "ID field"
@@ -19,7 +19,7 @@ class ObjectId(fields.ApiField):
 
 class EmbeddedDocumentField(fields.ToOneField):
     """
-    Embeds a resource inside another resource just like you would in Mongo.
+    Embeds a resource inside another resource just like you would in MongoDB.
     """
     
     is_related = False
@@ -31,6 +31,7 @@ class EmbeddedDocumentField(fields.ToOneField):
         The ``embedded`` argument should point to a ``Resource`` class, NOT
         to a ``document``. Required.
         '''
+        
         super(EmbeddedDocumentField, self).__init__(
             to=embedded,
             attribute=attribute,
@@ -38,12 +39,6 @@ class EmbeddedDocumentField(fields.ToOneField):
             full=True,
             help_text=help_text,
         )
-        
-    def dehydrate(self, obj):
-        out = super(EmbeddedDocumentField, self).dehydrate(obj).data
-        del(out['resource_uri'])
-        
-        return out
 
     def hydrate(self, bundle):
         return super(EmbeddedDocumentField, self).hydrate(bundle).obj

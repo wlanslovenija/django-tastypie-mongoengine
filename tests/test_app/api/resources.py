@@ -1,4 +1,3 @@
-# If we have from ..documents import * it doesn't work. Anybody knows why?
 from test_app import documents
 
 from tastypie_mongoengine import resources
@@ -40,7 +39,6 @@ class ListFieldTestResource(resources.MongoEngineResource):
         queryset = documents.ListFieldTest.objects.all()
         allowed_methods = ['get', 'post', 'put', 'delete']
         authorization = authorization.Authorization()
-
 
 class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
     embeddedlist = fields.EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
