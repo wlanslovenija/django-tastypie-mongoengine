@@ -9,7 +9,7 @@ if __name__ == '__main__':
         name = 'django-tastypie-mongoengine',
         version = VERSION,
         description = "This is an extension of django-tastypie to support mongoengine.",
-        long_description = open(os.path.join(os.path.dirname(__file__), 'README')).read(),
+        long_description = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read(),
         author = 'Matevz',
         author_email = 'matevz.mihalic@gmail.com',
         url = 'https://github.com/mitar/django-tastypie-mongoengine',
