@@ -1,11 +1,11 @@
 from django.utils import unittest
-from django.test.client import Client
+from django.test import client
 
 from test_app import documents
 
 class SimpleTest(unittest.TestCase):
     apiUrl = '/api/v1/'
-    c = Client()
+    c = client.Client()
     
     def setUp(self):
         documents.Person.drop_collection()

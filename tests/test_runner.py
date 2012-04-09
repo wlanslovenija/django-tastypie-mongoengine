@@ -1,6 +1,6 @@
-from django.test.simple import DjangoTestSuiteRunner
+from django.test import simple
 
-class TPMETestSuiteRunner(DjangoTestSuiteRunner):
+class TPMETestSuiteRunner(simple.DjangoTestSuiteRunner):
     def run_tests(self, test_labels, extra_tests=None, **kwargs):
         """
         It is the same as in DjangoTestSuiteRunner, but without databases.

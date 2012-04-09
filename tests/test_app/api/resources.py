@@ -1,15 +1,13 @@
+from tastypie import authorization, fields as tastypie_fields
+
+from tastypie_mongoengine import resources, fields
+
 from test_app import documents
-
-from tastypie_mongoengine import resources
-from tastypie_mongoengine import fields
-
-from tastypie import authorization
-from tastypie import fields as tastypie_fields
 
 class PersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Person.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class CustomerResource(resources.MongoEngineResource):
@@ -17,7 +15,7 @@ class CustomerResource(resources.MongoEngineResource):
     
     class Meta:
         queryset = documents.Customer.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
@@ -25,19 +23,19 @@ class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
                                                
     class Meta:
         queryset = documents.EmbededDocumentFieldTest.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class DictFieldTestResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.DictFieldTest.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class ListFieldTestResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.ListFieldTest.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
@@ -45,13 +43,13 @@ class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
     
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedPersonResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.EmbeddedPerson
-        allowed_methods = ['get', 'post', 'put', 'delete']
+        allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedPersonListResource(EmbeddedPersonResource, resources.MongoEngineListResource):

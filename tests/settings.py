@@ -1,10 +1,10 @@
-# Django settings for tpme_tests project.
-import sys, os
-sys.path.append(os.path.join(os.getcwd(), '../'))
+# Django settings for tpme_tests project
+import os, sys
+sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 DEBUG = True
 
-# Make this unique, and don't share it with anybody.
+# Make this unique, and don't share it with anybody
 SECRET_KEY = 'sq=uf!nqw=aibl+y1&5pp=)b7pc=c$4hnh$om*_c48r)^t!ob)'
 
 MIDDLEWARE_CLASSES = (

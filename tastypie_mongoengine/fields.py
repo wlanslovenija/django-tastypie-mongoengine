@@ -1,6 +1,4 @@
-from tastypie import fields
-from tastypie.bundle import Bundle
-from tastypie.utils import dict_strip_unicode_keys
+from tastypie import fields, bundle, utils
 
 class ObjectId(fields.ApiField):
     """
@@ -9,8 +7,8 @@ class ObjectId(fields.ApiField):
     
     help_text = "ID field"
     
-    def __init__(self, **kwargs):
-        super(ObjectId, self).__init__(**kwargs)
+    def __init__(self, *args, **kwargs):
+        super(ObjectId, self).__init__(*args, **kwargs)
         
         self.readonly = True
         self.unique = True
@@ -28,7 +26,7 @@ class EmbeddedDocumentField(fields.ToOneField):
 
     def __init__(self, embedded, attribute, null=False, help_text=None):
         '''
-        The ``embedded`` argument should point to a ``Resource`` class, NOT
+        The ``embedded`` argument should point to a ``Resource`` class, not
         to a ``document``. Required.
         '''
         
@@ -54,8 +52,8 @@ class EmbeddedDocumentField(fields.ToOneField):
         self.fk_resource = self.to_class()
         
         # Try to hydrate the data provided.
-        value = dict_strip_unicode_keys(value)
-        self.fk_bundle = Bundle(data=value)
+        value = utils.dict_strip_unicode_keys(value)
+        self.fk_bundle = bundle.Bundle(data=value)
             
         return self.fk_resource.full_hydrate(self.fk_bundle)
 
@@ -63,8 +61,9 @@ class EmbeddedListField(fields.ToManyField):
     """
     Represents a list of embedded objects. It must be used in conjunction
     with EmbeddedDocumentField.
+    
     Does not allow for manipulation (reordering) of List elements. Use
-    EmbeddedSortedList instead.
+    EmbeddedSortedListField instead.
     """
     
     is_related = False
@@ -80,14 +79,14 @@ class EmbeddedListField(fields.ToManyField):
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
-                raise ApiFieldError("The document %r has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
+                raise ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
             return []
         self.m2m_resources = []
         m2m_dehydrated = []
         
         for m2m in getattr(bundle.obj, self.attribute):
             m2m_resource = self.get_related_resource(m2m)
-            m2m_bundle = Bundle(obj=m2m)
+            m2m_bundle = bundle.Bundle(obj=m2m)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
         return m2m_dehydrated
@@ -108,7 +107,7 @@ class EmbeddedSortedListField(EmbeddedListField):
             return []
         if not getattr(bundle.obj, self.attribute):
             if not self.null:
-                raise ApiFieldError("The document %r has an empty attribute '%s' and does not all a null value." % (bundle.obj, self.attribute))
+                raise ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
             return []
         self.m2m_resources = []
         m2m_dehydrated = []
@@ -117,7 +116,7 @@ class EmbeddedSortedListField(EmbeddedListField):
             m2m.pk = index
             m2m.parent = bundle.obj
             m2m_resource = self.get_related_resource(m2m)
-            m2m_bundle = Bundle(obj=m2m)
+            m2m_bundle = bundle.Bundle(obj=m2m)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
             

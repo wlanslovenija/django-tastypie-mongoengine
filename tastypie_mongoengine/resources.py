@@ -1,12 +1,9 @@
 from django.conf.urls.defaults import url
-from django.core.exceptions import ObjectDoesNotExist
+from django.core import exceptions
 
-from tastypie import resources
-from tastypie import utils
-from tastypie import exceptions
-from tastypie import bundle
-from tastypie import fields as tastypie_fields
-from mongoengine import EmbeddedDocument
+from tastypie import resources, utils, exceptions, bundle, fields as tastypie_fields
+
+import mongoengine
 
 from tastypie_mongoengine import fields
 
@@ -36,8 +33,8 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         for field_name in field_names:
             if field_name == 'resource_uri':
-                # Delete resource_uri from fields if this is EmbeddedDocument
-                if meta and issubclass(meta.object_class, EmbeddedDocument):
+                # Delete resource_uri from fields if this is mongoengine.EmbeddedDocument
+                if meta and issubclass(meta.object_class, mongoengine.EmbeddedDocument):
                     del(new_class.base_fields[field_name])
             if field_name in new_class.declared_fields:
                 continue
@@ -46,7 +43,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
         
-        # Add in the new fields.
+        # Add in the new fields
         new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
 
         if getattr(new_class._meta, 'include_absolute_url', True):
@@ -79,15 +76,13 @@ class MongoEngineResource(resources.ModelResource):
 
         for name, obj in embedded:
             embedded_urls.extend([
-                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" %
-                    (self._meta.resource_name, name, utils.trailing_slash()),
+                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list'
                 ),
 
-                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\w[\w-]*)%s$" %
-                    (self._meta.resource_name, name, utils.trailing_slash()),
+                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail'
@@ -196,10 +191,12 @@ class MongoEngineListResource(MongoEngineResource):
         self.parent = parent
         self.attribute = attribute
         self.instance = None
+        
         super(MongoEngineListResource, self).__init__(api_name)
 
     def dispatch(self, request_type, request, **kwargs):
         self.instance = self.safe_get(request, **kwargs)
+        
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
     def safe_get(self, request, **kwargs):
@@ -211,7 +208,7 @@ class MongoEngineListResource(MongoEngineResource):
 
         try:
             return self.parent.cached_obj_get(request=request, **filters)
-        except ObjectDoesNotExist:
+        except exceptions.ObjectDoesNotExist:
             raise exceptions.ImmediateHttpResponse(response=HttpGone())
         
     def remove_api_resource_names(self, url_dict):
@@ -310,7 +307,7 @@ class MongoEngineListResource(MongoEngineResource):
 
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
-            'subresource_name': self.attribute
+            'subresource_name': self.attribute,
         }
         
         if hasattr(obj, 'parent'):

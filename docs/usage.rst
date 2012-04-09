@@ -35,7 +35,7 @@ in Meta class of your resource declaration instead of queryset::
             object_class = documents.EmbeddedPerson
             ...
     
-If you are using normal mongoengine ``Document`` you can use queryset or object_class.
+When you are using normal mongoengine ``Document`` you can use ``queryset`` or ``object_class``.
 
 Related and Embedded Fields
 ===========================
@@ -48,6 +48,7 @@ ForeignKey
 ::
 
     from tastypie import fields as tastypie_fields
+    
     class CustomerResource(resources.MongoEngineResource):
         person = tastypie_fields.ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
         ...
@@ -55,7 +56,9 @@ ForeignKey
 EmbeddedDocumentField
 ---------------------
 
-Embeds a resource inside another resource just like you would in MongoDB::
+Embeds a resource inside another resource just like you would in mongoengine::
+
+    from tastypie_mongoengine import fields
 
     class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
         customer = fields.EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
@@ -65,7 +68,7 @@ MongoEngineListResource
 =======================
 
 This resource is used instead of ``MongoEngineResource`` when you want an editable list of embedded documents.
-It is used in conjunction with ``EmbeddedSortedListField`` or ``EmbeddedSortedListField``.
+It is used in conjunction with ``EmbeddedSortedListField`` or ``EmbeddedListField``.
 
 ::
 

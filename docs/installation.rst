@@ -3,7 +3,7 @@ Installation
 
 Using pip_ simply by doing::
 
-    pip install django-pushserver
+    pip install django-tastypie-mongoengine
     
 or by installing from source with::
     
@@ -18,7 +18,9 @@ In your settings.py add ``tastypie`` and ``tastypie_mongoengine`` to ``INSTALLED
         'tastypie_mongoengine',
     )
 
-You must also establish a connection with mongoengine::
+You must also connect mongoengine_ to the database::
 
     import mongoengine
-    mongoengine.connect('tpme_tests')
+    mongoengine.connect('database')
+
+.. _mongoengine: http://readthedocs.org/docs/mongoengine-odm/en/latest/django.html
