@@ -4,9 +4,6 @@ django-tastypie-mongoengine
 
 MongoEngine_ support for django-tastypie_.
 
-.. _django-tastypie: https://github.com/toastdriven/django-tastypie
-.. _MongoEngine: http://mongoengine.org/
-
 Requirements
 ============
 
