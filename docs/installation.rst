@@ -23,4 +23,4 @@ You must also `connect mongoengine`_ to the database::
     import mongoengine
     mongoengine.connect('database')
 
-.. _mongoengine: http://readthedocs.org/docs/mongoengine-odm/en/latest/django.html
+.. _connect mongoengine: http://readthedocs.org/docs/mongoengine-odm/en/latest/django.html

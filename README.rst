@@ -2,7 +2,7 @@
 django-tastypie-mongoengine
 ===========================
 
-This is an extension of django-tastypie to support mongoengine.
+This is an extension of django-tastypie_ to support mongoengine_.
 
 Requirements
 ============
@@ -20,5 +20,5 @@ Requirements
 How to use?
 ===========
 
-* Check usage in tests: http://github.com/mitar/django-tastypie-mongoengine/tree/master/tests 
-* Check documentation: http://django-tastypie-mongoengine.readthedocs.org
+* See documentation: http://django-tastypie-mongoengine.readthedocs.org
+* See usage in tests: http://github.com/mitar/django-tastypie-mongoengine/tree/master/tests
