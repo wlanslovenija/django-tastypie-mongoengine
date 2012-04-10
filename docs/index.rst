@@ -1,7 +1,7 @@
 django-tastypie-mongoengine's documentation
 ===========================================
 
-MongoEngine_ support for django-tastypie_.
+This Django application provides MongoEngine_ support for django-tastypie_.
 
 .. _django-tastypie: https://github.com/toastdriven/django-tastypie
 .. _MongoEngine: http://mongoengine.org/

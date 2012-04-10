@@ -2,7 +2,7 @@
 django-tastypie-mongoengine
 ===========================
 
-MongoEngine_ support for django-tastypie_.
+This Django application provides MongoEngine_ support for django-tastypie_.
 
 Requirements
 ============
