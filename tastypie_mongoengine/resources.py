@@ -102,7 +102,7 @@ class MongoEngineResource(resources.ModelResource):
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
         """
         Returns the field type that would likely be associated with each
-        mongoengine type.
+        MongoEngine type.
         """
         
         result = default

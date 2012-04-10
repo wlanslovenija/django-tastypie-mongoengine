@@ -1,10 +1,10 @@
 django-tastypie-mongoengine's documentation
 ===========================================
 
-This is an extension of django-tastypie_ to support mongoengine_.
+MongoEngine_ support for django-tastypie_.
 
 .. _django-tastypie: https://github.com/toastdriven/django-tastypie
-.. _mongoengine: http://mongoengine.org/
+.. _MongoEngine: http://mongoengine.org/
 
 Contents
 --------

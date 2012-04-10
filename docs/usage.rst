@@ -27,7 +27,7 @@ Simple Example
 EmbeddedDocument
 ================
 
-When you are using ``EmbeddedDocument`` in your mongoengine documents, you must define ``object_class``
+When you are using ``EmbeddedDocument`` in your MongoEngine documents, you must define ``object_class``
 in Meta class of your resource declaration instead of queryset::
 
     class EmbeddedPersonResource(resources.MongoEngineResource):
@@ -35,7 +35,7 @@ in Meta class of your resource declaration instead of queryset::
             object_class = documents.EmbeddedPerson
             ...
     
-When you are using normal mongoengine ``Document`` you can use ``queryset`` or ``object_class``.
+When you are using normal MongoEngine ``Document`` you can use ``queryset`` or ``object_class``.
 
 Related and Embedded Fields
 ===========================
@@ -56,7 +56,7 @@ ForeignKey
 EmbeddedDocumentField
 ---------------------
 
-Embeds a resource inside another resource just like you would in mongoengine::
+Embeds a resource inside another resource just like you would in MongoEngine::
 
     from tastypie_mongoengine import fields
 

@@ -2,7 +2,10 @@
 django-tastypie-mongoengine
 ===========================
 
-This is an extension of django-tastypie_ to support mongoengine_.
+MongoEngine_ support for django-tastypie_.
+
+.. _django-tastypie: https://github.com/toastdriven/django-tastypie
+.. _MongoEngine: http://mongoengine.org/
 
 Requirements
 ============
@@ -10,12 +13,12 @@ Requirements
 * Python_ 2.5+
 * Django_ 1.3+ (May work on lower version, but not tested)
 * django-tastypie_ 0.9.11+
-* mongoengine_ 0.6.3+
+* MongoEngine_ 0.6.3+
 
 .. _Python: https://python.org
 .. _Django: http://djangoproject.com
 .. _django-tastypie: https://github.com/toastdriven/django-tastypie
-.. _mongoengine: http://mongoengine.org
+.. _MongoEngine: http://mongoengine.org
 
 How to use?
 ===========
