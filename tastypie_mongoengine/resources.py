@@ -1,7 +1,7 @@
 from django.conf.urls.defaults import url
 from django.core import exceptions
 
-from tastypie import resources, utils, exceptions, bundle, fields as tastypie_fields
+from tastypie import bundle, exceptions, fields as tastypie_fields, resources, utils
 
 import mongoengine
 
@@ -79,13 +79,13 @@ class MongoEngineResource(resources.ModelResource):
                 url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
-                    name='api_dispatch_subresource_list'
+                    name='api_dispatch_subresource_list',
                 ),
 
                 url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
-                    name='api_dispatch_subresource_detail'
+                    name='api_dispatch_subresource_detail',
                 ),
             ])
         return embedded_urls + base

@@ -18,7 +18,7 @@ In your settings.py add ``tastypie`` and ``tastypie_mongoengine`` to ``INSTALLED
         'tastypie_mongoengine',
     )
 
-You must also connect mongoengine_ to the database::
+You must also `connect mongoengine`_ to the database::
 
     import mongoengine
     mongoengine.connect('database')

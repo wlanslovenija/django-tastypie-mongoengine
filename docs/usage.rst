@@ -21,7 +21,7 @@ Simple Example
     class PersonResource(resources.MongoEngineResource):
         class Meta:
             queryset = documents.Person.objects.all()
-            allowed_methods = ['get', 'post', 'put', 'delete']
+            allowed_methods = ('get', 'post', 'put', 'delete')
             authorization = authorization.Authorization()
             
 EmbeddedDocument
@@ -40,7 +40,7 @@ When you are using normal mongoengine ``Document`` you can use ``queryset`` or `
 Related and Embedded Fields
 ===========================
 
-You must define **all** related fields (that you use in documents) in your resource file.
+All related fields you want exposed through API must be manually defined.
 
 ForeignKey
 ----------
