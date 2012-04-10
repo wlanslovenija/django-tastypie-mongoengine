@@ -15,8 +15,8 @@ if __name__ == '__main__':
         url = 'https://github.com/mitar/django-tastypie-mongoengine',
         keywords = "REST RESTful tastypie mongo mongodb mongoengine django",
         license = 'AGPLv3',
-        packages = find_packages(exclude=['*.tests', '*.tests.*', 'tests.*', 'tests']),
-        classifiers = [
+        packages = find_packages(exclude=('*.tests', '*.tests.*', 'tests.*', 'tests')),
+        classifiers = (
             'Development Status :: 4 - Beta',
             'Environment :: Web Environment',
             'Intended Audience :: Developers',
@@ -24,11 +24,11 @@ if __name__ == '__main__':
             'Operating System :: OS Independent',
             'Programming Language :: Python',
             'Framework :: Django',
-        ],
+        ),
         zip_safe = False,
-        install_requires = [
+        install_requires = (
             'Django>=1.3',
             'django-tastypie>=0.9.11',
             'mongoengine>=0.6.3',
-        ],
+        ),
     )
