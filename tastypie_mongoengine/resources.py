@@ -1,31 +1,32 @@
 from django.conf.urls.defaults import url
 from django.core import exceptions
 
-from tastypie import bundle, exceptions, fields as tastypie_fields, resources, utils
+from tastypie import bundle as tastypie_bundle, http, fields as tastypie_fields, resources, utils
 
 import mongoengine
 
 from tastypie_mongoengine import fields
 
+
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
     This class has the same functionality as its supper ``ModelDeclarativeMetaclass``.
     Only thing it does diffrently is how it sets ``object_class`` and ``queryset`` attributes.
-    
+
     This is an internal class and is not used by the end user of tastypie_mongoengine.
     """
-    
+
     def __new__(self, name, bases, attrs):
         meta = attrs.get('Meta')
-        
+
         if meta:
             if hasattr(meta, 'queryset') and not hasattr(meta, 'object_class'):
                 setattr(meta, 'object_class', meta.queryset._document)
-            
+
             if hasattr(meta, 'object_class') and not hasattr(meta, 'queryset'):
                 if hasattr(meta.object_class, 'objects'):
                     setattr(meta, 'queryset', meta.object_class.objects.all())
-                
+
         new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
@@ -42,7 +43,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
                 del(new_class.base_fields[field_name])
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
-        
+
         # Add in the new fields
         new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
 
@@ -54,13 +55,14 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         return new_class
 
+
 class MongoEngineResource(resources.ModelResource):
     """
     Minor enhancements to the stock ``ModelResource`` to allow subresources.
     """
-    
+
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
-    
+
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         field = self.fields[subresource_name]
         resource = field.to_class()
@@ -71,7 +73,7 @@ class MongoEngineResource(resources.ModelResource):
         base = super(MongoEngineResource, self).base_urls()
 
         embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedSortedListField))
-        
+
         embedded_urls = []
 
         for name, obj in embedded:
@@ -89,22 +91,22 @@ class MongoEngineResource(resources.ModelResource):
                 ),
             ])
         return embedded_urls + base
-    
+
     def get_object_list(self, request):
         """
         An ORM-specific implementation of ``get_object_list``.
         Returns a queryset that may have been limited by other overrides.
         """
-        
+
         return self._meta.queryset.clone()
-    
+
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
         """
         Returns the field type that would likely be associated with each
         MongoEngine type.
         """
-        
+
         result = default
 
         if f.__class__.__name__ in ('ComplexDateTimeField', 'DateTimeField'):
@@ -125,16 +127,16 @@ class MongoEngineResource(resources.ModelResource):
             result = tastypie_fields.ListField
         elif f.__class__.__name__ in ('ObjectIdField'):
             result = fields.ObjectId
-        
+
         return result
-    
+
     @classmethod
     def get_fields(self, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated model.
         """
-        
+
         final_fields = {}
         fields = fields or []
         excludes = excludes or []
@@ -172,31 +174,32 @@ class MongoEngineResource(resources.ModelResource):
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
-        
+
         return final_fields
+
 
 class MongoEngineListResource(MongoEngineResource):
     """
     An embedded MongoDB list acting as a collection. Used in conjunction with
     EmbeddedListField or EmbeddedSortedListField.
     """
-    
+
     def base_urls(self):
         return super(MongoEngineResource, self).base_urls()
-    
+
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         return super(MongoEngineResource, self).dispatch_subresource(request, subresource_name, **kwargs)
-    
+
     def __init__(self, parent=None, attribute=None, api_name=None):
         self.parent = parent
         self.attribute = attribute
         self.instance = None
-        
+
         super(MongoEngineListResource, self).__init__(api_name)
 
     def dispatch(self, request_type, request, **kwargs):
         self.instance = self.safe_get(request, **kwargs)
-        
+
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
     def safe_get(self, request, **kwargs):
@@ -209,8 +212,8 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.parent.cached_obj_get(request=request, **filters)
         except exceptions.ObjectDoesNotExist:
-            raise exceptions.ImmediateHttpResponse(response=HttpGone())
-        
+            raise exceptions.ImmediateHttpResponse(response=http.HttpGone())
+
     def remove_api_resource_names(self, url_dict):
         kwargs_subset = url_dict.copy()
 
@@ -219,7 +222,7 @@ class MongoEngineListResource(MongoEngineResource):
                 del(kwargs_subset[key])
             except KeyError:
                 pass
-        
+
         return kwargs_subset
 
     def get_object_list(self, request):
@@ -240,7 +243,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.get_object_list(request)[index]
         except IndexError:
-            raise exceptions.ImmediateHttpResponse(response=HttpGone())
+            raise exceptions.ImmediateHttpResponse(response=http.HttpGone())
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle = self.full_hydrate(bundle)
@@ -253,7 +256,7 @@ class MongoEngineListResource(MongoEngineResource):
             index = int(kwargs['index'])
         else:
             index = 0
-        
+
         try:
             bundle.obj = self.get_object_list(request)[index]
         except IndexError:
@@ -280,27 +283,27 @@ class MongoEngineListResource(MongoEngineResource):
         """
         Either updates an existing resource or creates a new one with the
         provided data.
-        
+
         Calls ``obj_update`` with the provided data first, but falls back to
         ``obj_create`` if the object does not already exist.
-        
+
         If a new resource is created, return ``HttpCreated`` (201 Created).
         If an existing resource is modified, return ``HttpAccepted`` (204 No Content).
         """
-        
+
         deserialized = self.deserialize(request, request.raw_post_data, format=request.META.get('CONTENT_TYPE', 'application/json'))
         bundle = self.build_bundle(data=utils.dict_strip_unicode_keys(deserialized))
         self.is_valid(bundle, request)
-        
+
         try:
             updated_bundle = self.obj_update(bundle, request=request, **kwargs)
-            return HttpAccepted()
+            return http.HttpAccepted()
         except:
             updated_bundle = self.obj_create(bundle, request=request, **kwargs)
-            return HttpCreated(location=self.get_resource_uri(updated_bundle))
+            return http.HttpCreated(location=self.get_resource_uri(updated_bundle))
 
     def get_resource_uri(self, bundle_or_obj):
-        if isinstance(bundle_or_obj, bundle.Bundle):
+        if isinstance(bundle_or_obj, tastypie_bundle.Bundle):
             obj = bundle_or_obj.obj
         else:
             obj = bundle_or_obj
@@ -309,7 +312,7 @@ class MongoEngineListResource(MongoEngineResource):
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute,
         }
-        
+
         if hasattr(obj, 'parent'):
             kwargs['pk'] = obj.parent._id
         else:
@@ -319,7 +322,7 @@ class MongoEngineListResource(MongoEngineResource):
 
         if self._meta.api_name is not None:
             kwargs['api_name'] = self._meta.api_name
-        
+
         ret = self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)
 
         return ret
