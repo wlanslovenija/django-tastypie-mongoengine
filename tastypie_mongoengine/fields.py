@@ -1,5 +1,4 @@
-from tastypie import fields, bundle as tastypie_bundle, utils
-
+from tastypie import bundle as tastypie_bundle, fields, utils
 
 class ObjectId(fields.ApiField):
     """
@@ -15,7 +14,6 @@ class ObjectId(fields.ApiField):
         self.unique = True
         self.blank = False
         self.null = False
-
 
 class EmbeddedDocumentField(fields.ToOneField):
     """
@@ -59,7 +57,6 @@ class EmbeddedDocumentField(fields.ToOneField):
 
         return self.fk_resource.full_hydrate(self.fk_bundle)
 
-
 class EmbeddedListField(fields.ToManyField):
     """
     Represents a list of embedded objects. It must be used in conjunction
@@ -96,7 +93,6 @@ class EmbeddedListField(fields.ToManyField):
 
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
-
 
 class EmbeddedSortedListField(EmbeddedListField):
     """

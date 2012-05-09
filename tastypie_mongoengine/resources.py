@@ -1,12 +1,11 @@
 from django.conf.urls.defaults import url
 from django.core import exceptions
 
-from tastypie import bundle as tastypie_bundle, http, fields as tastypie_fields, resources, utils, exceptions as tastypie_exceptions
+from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
 import mongoengine
 
 from tastypie_mongoengine import fields
-
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -54,7 +53,6 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             del(new_class.base_fields['absolute_url'])
 
         return new_class
-
 
 class MongoEngineResource(resources.ModelResource):
     """
@@ -176,7 +174,6 @@ class MongoEngineResource(resources.ModelResource):
             final_fields[name].instance_name = name
 
         return final_fields
-
 
 class MongoEngineListResource(MongoEngineResource):
     """
