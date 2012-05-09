@@ -1,7 +1,7 @@
 from django.conf.urls.defaults import url
 from django.core import exceptions
 
-from tastypie import bundle as tastypie_bundle, http, fields as tastypie_fields, resources, utils
+from tastypie import bundle as tastypie_bundle, http, fields as tastypie_fields, resources, utils, exceptions as tastypie_exceptions
 
 import mongoengine
 
@@ -212,7 +212,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.parent.cached_obj_get(request=request, **filters)
         except exceptions.ObjectDoesNotExist:
-            raise exceptions.ImmediateHttpResponse(response=http.HttpGone())
+            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpGone())
 
     def remove_api_resource_names(self, url_dict):
         kwargs_subset = url_dict.copy()
@@ -243,7 +243,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             return self.get_object_list(request)[index]
         except IndexError:
-            raise exceptions.ImmediateHttpResponse(response=http.HttpGone())
+            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpGone())
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle = self.full_hydrate(bundle)
@@ -260,7 +260,7 @@ class MongoEngineListResource(MongoEngineResource):
         try:
             bundle.obj = self.get_object_list(request)[index]
         except IndexError:
-            raise exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
         bundle = self.full_hydrate(bundle)
         new_index = int(bundle.data['id'])
         lst = getattr(self.instance, self.attribute)
