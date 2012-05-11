@@ -244,7 +244,9 @@ class MongoEngineListResource(MongoEngineResource):
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle = self.full_hydrate(bundle)
-        getattr(self.instance, self.attribute).append(bundle.obj)
+        object_list = getattr(self.instance, self.attribute)
+        object_list.append(bundle.obj)
+        bundle.obj.pk = unicode(len(object_list) - 1)
         self.instance.save()
         return bundle
 
@@ -308,6 +310,7 @@ class MongoEngineListResource(MongoEngineResource):
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute,
+            'index': obj.pk,
         }
 
         if hasattr(obj, 'parent'):
@@ -315,11 +318,9 @@ class MongoEngineListResource(MongoEngineResource):
         else:
             kwargs['pk'] = self.instance.id
 
-        kwargs['index'] = obj.pk
+        api_name = self._meta.api_name or self.parent._meta.api_name
 
-        if self._meta.api_name is not None:
-            kwargs['api_name'] = self._meta.api_name
+        if api_name:
+            kwargs['api_name'] = api_name
 
-        ret = self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)
-
-        return ret
+        return self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)
