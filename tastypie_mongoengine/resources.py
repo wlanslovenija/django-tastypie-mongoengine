@@ -119,11 +119,13 @@ class MongoEngineResource(resources.ModelResource):
             result = tastypie_fields.IntegerField
         elif f.__class__.__name__ in ('FileField', 'BinaryField'):
             result = tastypie_fields.FileField
-        elif f.__class__.__name__ in ('DictField'):
+        elif f.__class__.__name__ in ('DictField',):
             result = tastypie_fields.DictField
-        elif f.__class__.__name__ in ('ListField'):
+        elif f.__class__.__name__ in ('ListField',):
             result = tastypie_fields.ListField
-        elif f.__class__.__name__ in ('ObjectIdField'):
+        elif f.__class__.__name__ in ('GeoPointField',):
+            result = tastypie_fields.ListField
+        elif f.__class__.__name__ in ('ObjectIdField',):
             result = fields.ObjectId
 
         return result
