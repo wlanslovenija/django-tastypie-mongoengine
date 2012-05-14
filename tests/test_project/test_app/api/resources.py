@@ -2,7 +2,7 @@ from tastypie import authorization, fields as tastypie_fields
 
 from tastypie_mongoengine import resources, fields
 
-from test_app import documents
+from test_project.test_app import documents
 
 class PersonResource(resources.MongoEngineResource):
     class Meta:
@@ -11,7 +11,7 @@ class PersonResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class CustomerResource(resources.MongoEngineResource):
-    person = tastypie_fields.ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
+    person = tastypie_fields.ForeignKey(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
     
     class Meta:
         queryset = documents.Customer.objects.all()
@@ -19,7 +19,7 @@ class CustomerResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
-    customer = fields.EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
+    customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer')
                                                
     class Meta:
         queryset = documents.EmbededDocumentFieldTest.objects.all()
@@ -39,7 +39,7 @@ class ListFieldTestResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
-    embeddedlist = fields.EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
+    embeddedlist = fields.EmbeddedSortedListField(of='test_project.test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
     
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()

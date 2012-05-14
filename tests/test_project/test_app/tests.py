@@ -1,7 +1,7 @@
 from django.utils import unittest
 from django.test import client
 
-from test_app import documents
+from test_project.test_app import documents
 
 class SimpleTest(unittest.TestCase):
     apiUrl = '/api/v1/'
@@ -49,4 +49,3 @@ class SimpleTest(unittest.TestCase):
         
         response = self.c.post(self.makeUrl('embeddedsortedlistfieldtest'), '{"embeddedlist": [{"name": "Embeded person 1"}, {"name": "Embeded person 2"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
-        

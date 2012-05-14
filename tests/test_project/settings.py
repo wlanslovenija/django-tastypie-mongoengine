@@ -1,6 +1,4 @@
-# Django settings for tpme_tests project
-import os, sys
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+# Django settings for test_project project
 
 DEBUG = True
 
@@ -15,7 +13,7 @@ MIDDLEWARE_CLASSES = (
     'django.contrib.messages.middleware.MessageMiddleware',
 )
 
-ROOT_URLCONF = 'tests.urls'
+ROOT_URLCONF = 'test_project.urls'
 
 AUTHENTICATION_BACKENDS = (
     'mongoengine.django.auth.MongoEngineBackend',
@@ -23,13 +21,13 @@ AUTHENTICATION_BACKENDS = (
 
 SESSION_ENGINE = 'mongoengine.django.sessions'
 
-TEST_RUNNER = 'tests.test_runner.TPMETestSuiteRunner'
+TEST_RUNNER = 'test_project.test_runner.TPMETestSuiteRunner'
 
 INSTALLED_APPS = (
     'tastypie',
     'tastypie_mongoengine',
-    'test_app',
+    'test_project.test_app',
 )
 
 import mongoengine
-mongoengine.connect('tpme_tests')
+mongoengine.connect('test_project')
