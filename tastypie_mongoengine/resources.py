@@ -261,7 +261,7 @@ class MongoEngineResource(resources.ModelResource):
         return data
 
     def obj_get(self, request=None, **kwargs):
-        # MongoEngine exceptions are separate from Django excpetions, we combine them here
+        # MongoEngine exceptions are separate from Django exceptions, we combine them here
         try:
             return super(MongoEngineResource, self).obj_get(request, **kwargs)
         except self._meta.object_class.DoesNotExist, e:
