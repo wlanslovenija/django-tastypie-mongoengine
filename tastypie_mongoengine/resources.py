@@ -166,8 +166,11 @@ class MongoEngineResource(resources.ModelResource):
 
     def dispatch(self, request_type, request, **kwargs):
         # We process specially only requests with payload
-        if request.method.lower() not in ('put', 'post', 'patch'):
+        if not request.body:
+            assert request.method.lower() not in ('put', 'post', 'patch'), request.method
             return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+
+        assert request.method.lower() in ('put', 'post', 'patch'), request.method
 
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 

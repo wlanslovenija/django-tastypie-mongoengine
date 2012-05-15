@@ -27,7 +27,7 @@ if __name__ == '__main__':
         ),
         zip_safe = False,
         install_requires = (
-            'Django>=1.3',
+            'Django>=1.4',
             'django-tastypie>=0.9.11',
             'mongoengine>=0.6.3',
         ),
