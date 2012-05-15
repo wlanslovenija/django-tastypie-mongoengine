@@ -30,6 +30,15 @@ class SimpleTest(test.TestCase):
     def test_creating_content(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        response = self.c.post(self.makeUrl('person'), '{"name": null}', content_type='application/json')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        response = self.c.post(self.makeUrl('person'), '{"name": []}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
+
+        response = self.c.post(self.makeUrl('person'), '{"name": {}}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
         
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 2"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)

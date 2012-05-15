@@ -245,6 +245,15 @@ class MongoEngineResource(resources.ModelResource):
                 if getattr(bundle.obj, field_object.attribute, None) is None: # False could be good
                     raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
 
+        # We validate MongoEngine object here so that possible exception
+        # is thrown before going to MongoEngine layer, wrapped in
+        # Django exception so that it is handled properly
+        # is_valid method is too early as bundle.obj is not yet ready then
+        try:
+            bundle.obj.validate()
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
+
         return bundle
 
     def build_schema(self):
@@ -369,8 +378,6 @@ class MongoEngineResource(resources.ModelResource):
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
-
-            # TODO: What about MongoEngine custom validation methods for fields?
 
         return final_fields
 
