@@ -1,8 +1,8 @@
 from django.test import simple
 
-class TPMETestSuiteRunner(simple.DjangoTestSuiteRunner):
+class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     """
-    It is the same as in DjangoTestSuiteRunner, but without databases.
+    It is the same as in DjangoTestSuiteRunner, but without relational databases.
     """
 
     def setup_databases(self, **kwargs):

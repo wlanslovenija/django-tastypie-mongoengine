@@ -5,7 +5,7 @@ DEBUG = True
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': 'dummy.db',
+        'NAME': ':memory:',
     }
 }
 
@@ -28,7 +28,7 @@ AUTHENTICATION_BACKENDS = (
 
 SESSION_ENGINE = 'mongoengine.django.sessions'
 
-TEST_RUNNER = 'test_project.test_runner.TPMETestSuiteRunner'
+TEST_RUNNER = 'test_project.test_runner.MongoEngineTestSuiteRunner'
 
 INSTALLED_APPS = (
     'tastypie',
