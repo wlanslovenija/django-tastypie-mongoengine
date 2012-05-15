@@ -2,10 +2,12 @@ import re
 
 from django.conf.urls.defaults import url
 from django.core import exceptions
+from django.db.models import base
 
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
 import mongoengine
+from mongoengine import queryset
 
 from tastypie_mongoengine import fields
 
@@ -163,6 +165,10 @@ class MongoEngineResource(resources.ModelResource):
         return self._wrap_polymorphic(resource, fun)
 
     def dispatch(self, request_type, request, **kwargs):
+        # We process specially only requests with payload
+        if request.method.lower() not in ('put', 'post', 'patch'):
+            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 
     def get_schema(self, request, **kwargs):
@@ -209,6 +215,35 @@ class MongoEngineResource(resources.ModelResource):
         resource = self._get_resource_from_class(type_map, bundle.obj.__class__)
         return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle))
 
+    def full_hydrate(self, bundle):
+        # When updating objects, we want to force only updates of the same type, and object
+        # should be completely replaced if type is changed, so we throw and exception here
+        # to direct program logic flow (it is catched and replace instead of update is tried)
+        if bundle.obj and self._meta.object_class is not bundle.obj.__class__:
+            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+
+        bundle = super(MongoEngineResource, self).full_hydrate(bundle)
+
+        # We redo check for required fields as Tastypie is not reliable here
+        for field_object in self.fields.values():
+            if field_object.null or field_object.readonly:
+                continue
+
+            if not field_object.attribute:
+                continue
+
+            if isinstance(field_object, mongoengine.ListField):
+                if not getattr(bundle.obj, field_object.attribute, []): # None, False are also not good
+                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
+            elif isinstance(field_object, mongoengine.DictField):
+                if not getattr(bundle.obj, field_object.attribute, {}): # None, False are also not good
+                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
+            else:
+                if getattr(bundle.obj, field_object.attribute, None) is None: # False could be good
+                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
+
+        return bundle
+
     def build_schema(self):
         data = super(MongoEngineResource, self).build_schema()
 
@@ -222,6 +257,23 @@ class MongoEngineResource(resources.ModelResource):
 
         return data
 
+    def obj_get(self, request=None, **kwargs):
+        # MongoEngine exceptions are separate from Django excpetions, we combine them here
+        try:
+            return super(MongoEngineResource, self).obj_get(request, **kwargs)
+        except self._meta.object_class.DoesNotExist, e:
+            exp = base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
+            raise exp(*e.args)
+        except queryset.DoesNotExist, e:
+            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            raise exp(*e.args)
+        except self._meta.object_class.MultipleObjectsReturned, e:
+            exp = base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
+            raise exp(*e.args)
+        except queryset.MultipleObjectsReturned, e:
+            exp = base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
+            raise exp(*e.args)
+
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
         """
@@ -231,6 +283,7 @@ class MongoEngineResource(resources.ModelResource):
 
         result = default
 
+        # TODO: This should probably be changed to a series of isinstance calls
         if f.__class__.__name__ in ('ComplexDateTimeField', 'DateTimeField'):
             result = tastypie_fields.DateTimeField
         elif f.__class__.__name__ in ('BooleanField',):
@@ -290,14 +343,31 @@ class MongoEngineResource(resources.ModelResource):
             kwargs = {
                 'attribute': name,
                 'unique': f.unique,
-                'default': f.default,
+                'null': not f.required,
+                'help_text': f.help_text,
             }
 
-            if f.required is False:
-                kwargs['null'] = True
+            # If field is not required, it does not matter if set default value,
+            # so we do
+            if not f.required:
+                kwargs['default'] = f.default
+            else:
+                # MongoEngine does not really differ between user-specified default
+                # and its default, so we try to guess
+                if isinstance(f, mongoengine.ListField):
+                    if not callable(f.default) or f.default() != []: # If not MongoEngine's default
+                        kwargs['default'] = f.default
+                elif isinstance(f, mongoengine.DictField):
+                    if not callable(f.default) or f.default() != {}: # If not MongoEngine's default
+                        kwargs['default'] = f.default
+                else:
+                    if f.default is not None: # If not MongoEngine's default
+                        kwargs['default'] = f.default
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
+
+            # TODO: What about MongoEngine custom validation methods for fields?
 
         return final_fields
 
