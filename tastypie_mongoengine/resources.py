@@ -142,14 +142,14 @@ class MongoEngineResource(resources.ModelResource):
             self.base_fields = base_fields
             self.fields = fields
 
-    def dispatch(self, request_type, request, **kwargs):
+    def _wrap_request(self, request, fun):
         type_map = getattr(self._meta, 'polymorphic', {})
         if not type_map:
-            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+            return fun()
 
         object_type = self._get_object_type(request)
         if not object_type:
-            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+            return fun()
 
         if object_type not in type_map:
             raise tastypie_exceptions.BadRequest("Invalid object type.")
@@ -158,10 +158,16 @@ class MongoEngineResource(resources.ModelResource):
 
         # Optimization
         if resource._meta.object_class is self._meta.object_class:
-            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+            return fun()
 
-        return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
-    
+        return self._wrap_polymorphic(resource, fun)
+
+    def dispatch(self, request_type, request, **kwargs):
+        return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
+
+    def get_schema(self, request, **kwargs):
+        return self._wrap_request(request, lambda: super(MongoEngineResource, self).get_schema(request, **kwargs))
+
     def _get_resource_from_class(self, type_map, cls):
         for resource in type_map.values():
             if resource._meta.object_class is cls:
@@ -202,6 +208,19 @@ class MongoEngineResource(resources.ModelResource):
 
         resource = self._get_resource_from_class(type_map, bundle.obj.__class__)
         return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle))
+
+    def build_schema(self):
+        data = super(MongoEngineResource, self).build_schema()
+
+        type_map = getattr(self._meta, 'polymorphic', {})
+        if not type_map:
+            return data
+
+        data.update({
+            'resource_types': type_map.keys(),
+        })
+
+        return data
 
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
