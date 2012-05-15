@@ -8,12 +8,15 @@ class ObjectId(fields.ApiField):
     help_text = "ID field"
 
     def __init__(self, *args, **kwargs):
-        super(ObjectId, self).__init__(*args, **kwargs)
+        kwargs.update({
+            'readonly': True,
+            'unique': True,
+            'blank': False,
+            'null': False,
+        })
+        kwargs.pop('default', None)
 
-        self.readonly = True
-        self.unique = True
-        self.blank = False
-        self.null = False
+        super(ObjectId, self).__init__(*args, **kwargs)
 
 class EmbeddedDocumentField(fields.ToOneField):
     """
