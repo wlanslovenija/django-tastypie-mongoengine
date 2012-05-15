@@ -31,7 +31,7 @@ if __name__ == '__main__':
             'django-tastypie>=0.9.11',
             'mongoengine>=0.6.3',
         ),
-        test_suite = 'tests.runtests',
+        test_suite = 'tests.runtests.runtests',
         tests_require = (
             'Django>=1.4',
             'django-tastypie>=0.9.11',
