@@ -4,11 +4,21 @@ from tastypie_mongoengine import resources, fields
 
 from test_project.test_app import documents
 
+class StrangePersonResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.StrangePerson.objects.all()
+        allowed_methods = ()
+
 class PersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Person.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
+
+        polymorphic = {
+            'person': 'self',
+            'strangeperson': StrangePersonResource(),
+        }
 
 class CustomerResource(resources.MongoEngineResource):
     person = tastypie_fields.ForeignKey(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)

@@ -1,7 +1,14 @@
 import mongoengine
 
 class Person(mongoengine.Document):
+    meta = {
+        'allow_inheritance': True,
+    }
+
     name = mongoengine.StringField(max_length=200, required=True)
+
+class StrangePerson(Person):
+    strange = mongoengine.StringField(max_length=100, required=True)
 
 class EmbeddedPerson(mongoengine.EmbeddedDocument):
     name = mongoengine.StringField(max_length=200, required=True)

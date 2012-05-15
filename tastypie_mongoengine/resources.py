@@ -1,3 +1,5 @@
+import re
+
 from django.conf.urls.defaults import url
 from django.core import exceptions
 
@@ -6,6 +8,8 @@ from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exception
 import mongoengine
 
 from tastypie_mongoengine import fields
+
+CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -48,9 +52,22 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         if getattr(new_class._meta, 'include_absolute_url', True):
             if not 'absolute_url' in new_class.base_fields:
-                new_class.base_fields['absolute_url'] = fields.CharField(attribute='get_absolute_url', readonly=True)
+                new_class.base_fields['absolute_url'] = tastypie_fields.CharField(attribute='get_absolute_url', readonly=True)
         elif 'absolute_url' in new_class.base_fields and not 'absolute_url' in attrs:
             del(new_class.base_fields['absolute_url'])
+
+        type_map = getattr(new_class._meta, 'polymorphic', {})
+
+        if type_map and getattr(new_class._meta, 'include_resource_type', True):
+            if not 'resource_type' in new_class.base_fields:
+                new_class.base_fields['resource_type'] = tastypie_fields.CharField(readonly=True)
+        elif 'resource_type' in new_class.base_fields and not 'resource_type' in attrs:
+            del(new_class.base_fields['resource_type'])
+
+        for typ, resource in type_map.items():
+            if resource == 'self':
+                type_map[typ] = new_class
+                break
 
         return new_class
 
@@ -97,6 +114,94 @@ class MongoEngineResource(resources.ModelResource):
         """
 
         return self._meta.queryset.clone()
+
+    def _get_object_type(self, request):
+        match = CONTENT_TYPE_RE.match(request.META.get('CONTENT_TYPE', ''))
+        if match:
+            return match.group(1)
+        else:
+            return None
+
+    def _wrap_polymorphic(self, resource, fun):
+        object_class = self._meta.object_class
+        queryset = self._meta.queryset
+        base_fields = self.base_fields
+        fields = self.fields
+        try:
+            self._meta.object_class = resource._meta.object_class
+            self._meta.queryset = resource._meta.queryset
+            self.base_fields = resource.base_fields.copy()
+            self.fields = resource.fields.copy()
+            if getattr(self._meta, 'include_resource_type', True):
+                self.base_fields['resource_type'] = base_fields['resource_type']
+                self.fields['resource_type'] = fields['resource_type']
+            return fun()
+        finally:
+            self._meta.object_class = object_class
+            self._meta.queryset = queryset
+            self.base_fields = base_fields
+            self.fields = fields
+
+    def dispatch(self, request_type, request, **kwargs):
+        type_map = getattr(self._meta, 'polymorphic', {})
+        if not type_map:
+            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+
+        object_type = self._get_object_type(request)
+        if not object_type:
+            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+
+        if object_type not in type_map:
+            raise tastypie_exceptions.BadRequest("Invalid object type.")
+
+        resource = type_map[object_type]
+
+        # Optimization
+        if resource._meta.object_class is self._meta.object_class:
+            return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+
+        return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
+    
+    def _get_resource_from_class(self, type_map, cls):
+        for resource in type_map.values():
+            if resource._meta.object_class is cls:
+                return resource
+        raise KeyError(cls)
+
+    def _get_type_from_class(self, type_map, cls):
+        # As we are overriding self._meta.object_class we have to make sure
+        # that we do not miss real match, so if self._meta.object_class
+        # matches, we still check other items, otherwise we return immediately
+        res = None
+        for typ, resource in type_map.items():
+            if resource._meta.object_class is cls:
+                if resource._meta.object_class is self._meta.object_class:
+                    res = typ
+                else:
+                    return typ
+        if res is not None:
+            return res
+        else:
+            raise KeyError(cls)
+
+    def dehydrate_resource_type(self, bundle):
+        type_map = getattr(self._meta, 'polymorphic', {})
+        if not type_map:
+            return None
+
+        return self._get_type_from_class(type_map, bundle.obj.__class__)
+
+    def full_dehydrate(self, bundle):
+        type_map = getattr(self._meta, 'polymorphic', {})
+        if not type_map:
+            return super(MongoEngineResource, self).full_dehydrate(bundle)
+
+        # Optimization
+        if self._meta.object_class is bundle.obj.__class__:
+            return super(MongoEngineResource, self).full_dehydrate(bundle)
+
+        resource = self._get_resource_from_class(type_map, bundle.obj.__class__)
+        return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle))
 
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):

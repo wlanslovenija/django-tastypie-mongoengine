@@ -2,6 +2,13 @@
 
 DEBUG = True
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': 'dummy.db',
+    }
+}
+
 # Make this unique, and don't share it with anybody
 SECRET_KEY = 'sq=uf!nqw=aibl+y1&5pp=)b7pc=c$4hnh$om*_c48r)^t!ob)'
 
