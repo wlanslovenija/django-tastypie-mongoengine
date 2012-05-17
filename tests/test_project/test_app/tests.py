@@ -27,7 +27,7 @@ class SimpleTest(test.TestCase):
         
         return self.apiUrl + location.split(self.apiUrl)[1]
 
-    def test_creating_content(self):
+    def test_basis(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
@@ -117,6 +117,10 @@ class SimpleTest(test.TestCase):
 
         self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1')
         self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2')
+
+        # TODO: Test delete
+        # TODO: Test put
+        # TODO: Test patch
 
     def test_polymorphic(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json; type=person')
@@ -218,3 +222,4 @@ class SimpleTest(test.TestCase):
         self.assertEqual(response['resource_type'], 'person')
 
         # TODO: Test patch requests (https://code.djangoproject.com/ticket/17797)
+        # TODO: Test delete
