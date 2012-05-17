@@ -8,9 +8,9 @@ Requirements
 ============
 
 * Python_ 2.5+
-* Django_ 1.3+ (May work on lower version, but not tested)
+* Django_ 1.4+ (may work on lower version, but not tested)
 * django-tastypie_ 0.9.11+
-* MongoEngine_ 0.6.3+
+* MongoEngine_ 0.6.9+
 
 .. _Python: https://python.org
 .. _Django: http://djangoproject.com

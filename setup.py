@@ -29,12 +29,12 @@ if __name__ == '__main__':
         install_requires = (
             'Django>=1.4',
             'django-tastypie>=0.9.11',
-            'mongoengine>=0.6.3',
+            'mongoengine>=0.6.9',
         ),
         test_suite = 'tests.runtests.runtests',
         tests_require = (
             'Django>=1.4',
             'django-tastypie>=0.9.11',
-            'mongoengine>=0.6.3',
+            'mongoengine>=0.6.9',
         ),
     )
