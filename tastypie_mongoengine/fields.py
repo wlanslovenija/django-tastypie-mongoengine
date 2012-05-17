@@ -64,9 +64,6 @@ class EmbeddedListField(fields.ToManyField):
     """
     Represents a list of embedded objects. It must be used in conjunction
     with EmbeddedDocumentField.
-
-    Does not allow for manipulation (reordering) of List elements. Use
-    EmbeddedSortedListField instead.
     """
 
     is_related = False
@@ -84,34 +81,7 @@ class EmbeddedListField(fields.ToManyField):
             if not self.null:
                 raise fields.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
             return []
-        self.m2m_resources = []
-        m2m_dehydrated = []
 
-        for m2m in getattr(bundle.obj, self.attribute):
-            m2m_resource = self.get_related_resource(m2m)
-            m2m_bundle = tastypie_bundle.Bundle(obj=m2m)
-            self.m2m_resources.append(m2m_resource)
-            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
-        return m2m_dehydrated
-
-    def hydrate(self, bundle):
-        return [b.obj for b in self.hydrate_m2m(bundle)]
-
-class EmbeddedSortedListField(EmbeddedListField):
-    """
-    EmbeddedSortedListField allows for operating on the sub resources
-    individually, through the index based collection.
-    """
-
-    def dehydrate(self, bundle):
-        if not bundle.obj or not bundle.obj.pk:
-            if not self.null:
-                raise fields.ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
-            return []
-        if not getattr(bundle.obj, self.attribute):
-            if not self.null:
-                raise fields.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
-            return []
         self.m2m_resources = []
         m2m_dehydrated = []
 
@@ -125,7 +95,10 @@ class EmbeddedSortedListField(EmbeddedListField):
 
         return m2m_dehydrated
 
+    def hydrate(self, bundle):
+        return [b.obj for b in self.hydrate_m2m(bundle)]
+
     @property
     def to_class(self):
-        base = super(EmbeddedSortedListField, self).to_class
+        base = super(EmbeddedListField, self).to_class
         return lambda: base(self._resource(), self.instance_name)

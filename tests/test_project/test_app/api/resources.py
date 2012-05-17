@@ -22,7 +22,7 @@ class PersonResource(resources.MongoEngineResource):
 
 class CustomerResource(resources.MongoEngineResource):
     person = tastypie_fields.ForeignKey(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
-    
+
     class Meta:
         queryset = documents.Customer.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')
@@ -30,7 +30,7 @@ class CustomerResource(resources.MongoEngineResource):
 
 class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
     customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer')
-                                               
+
     class Meta:
         queryset = documents.EmbededDocumentFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')
@@ -48,9 +48,9 @@ class ListFieldTestResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = authorization.Authorization()
 
-class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
-    embeddedlist = fields.EmbeddedSortedListField(of='test_project.test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
-    
+class EmbeddedListFieldTestResource(resources.MongoEngineResource):
+    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
+
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')

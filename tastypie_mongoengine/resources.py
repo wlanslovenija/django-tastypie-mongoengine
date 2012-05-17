@@ -89,7 +89,7 @@ class MongoEngineResource(resources.ModelResource):
     def base_urls(self):
         base = super(MongoEngineResource, self).base_urls()
 
-        embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedSortedListField))
+        embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedListField))
 
         embedded_urls = []
 
@@ -384,7 +384,7 @@ class MongoEngineResource(resources.ModelResource):
 class MongoEngineListResource(MongoEngineResource):
     """
     An embedded MongoDB list acting as a collection. Used in conjunction with
-    EmbeddedListField or EmbeddedSortedListField.
+    EmbeddedListField.
     """
 
     def base_urls(self):

@@ -42,21 +42,81 @@ class SimpleTest(test.TestCase):
         
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 2"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
-        
-        response = self.c.post(self.makeUrl('customer'), '{"person": "%s"}' % self.getUri(response['location']), content_type='application/json')
+
+        person_uri = response['location']
+
+        response = self.c.get(person_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 2')
+
+        response = self.c.put(person_uri, '{"name": "Person 2a"}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(person_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 2a')
+
+        response = self.c.post(self.makeUrl('customer'), '{"person": "%s"}' % self.getUri(person_uri), content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        customer_uri = response['location']
+
+        response = self.c.get(customer_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person 2a')
         
         response = self.c.post(self.makeUrl('embededdocumentfieldtest'), '{"customer": {"name": "Embeded person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        embededdocumentfieldtest_uri = response['location']
+
+        response = self.c.get(embededdocumentfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['customer']['name'], 'Embeded person 1')
         
         response = self.c.post(self.makeUrl('dictfieldtest'), '{"dictionary": {"a": "abc", "number": 34}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        dictfieldtest_uri = response['location']
+
+        response = self.c.get(dictfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['dictionary']['a'], 'abc')
+        self.assertEqual(response['dictionary']['number'], 34)
         
         response = self.c.post(self.makeUrl('listfieldtest'), '{"intlist": [1, 2, 3, 4], "stringlist": ["a", "b", "c"]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
-        
-        response = self.c.post(self.makeUrl('embeddedsortedlistfieldtest'), '{"embeddedlist": [{"name": "Embeded person 1"}, {"name": "Embeded person 2"}]}', content_type='application/json')
+
+        listfieldtest_uri = response['location']
+
+        response = self.c.get(listfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['intlist'], [1, 2, 3, 4])
+        self.assertEqual(response['stringlist'], ['a', 'b', 'c'])
+
+        response = self.c.post(self.makeUrl('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embeded person 1"}, {"name": "Embeded person 2"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        embeddedlistfieldtest_uri = response['location']
+
+        response = self.c.get(embeddedlistfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2')
 
     def test_polymorphic(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json; type=person')
@@ -102,7 +162,7 @@ class SimpleTest(test.TestCase):
 
         self.assertEqual(response['name'], 'Person 1a')
 
-        # Changing existing resource type
+        # Changing existing resource type (type->subtype)
 
         # Field "name" is required
         response = self.c.put(person1_uri, '{"strange": "something"}', content_type='application/json; type=strangeperson')
@@ -135,7 +195,7 @@ class SimpleTest(test.TestCase):
         self.assertEqual(response['name'], 'Person 2a')
         self.assertEqual(response['strange'], 'FoobarXXX')
 
-        # Changing resource type again
+        # Changing resource type again (subtype->type)
         response = self.c.put(person1_uri, '{"name": "Person 1c"}', content_type='application/json; type=person')
         self.assertRedirects(response, person1_uri, status_code=201)
 

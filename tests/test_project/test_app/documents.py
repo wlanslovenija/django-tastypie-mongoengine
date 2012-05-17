@@ -27,8 +27,4 @@ class ListFieldTest(mongoengine.Document):
     intlist = mongoengine.ListField(mongoengine.IntField())
 
 class EmbeddedListFieldTest(mongoengine.Document):
-    """
-    A document with lists of embedded objects
-    """
-    
-    embeddedlist = mongoengine.SortedListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
+    embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
