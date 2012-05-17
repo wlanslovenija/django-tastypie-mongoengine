@@ -21,7 +21,7 @@ class EmbededDocumentFieldTest(mongoengine.Document):
     customer = mongoengine.EmbeddedDocumentField(EmbeddedPerson)
 
 class DictFieldTest(mongoengine.Document):
-    dictionary = mongoengine.DictField()
+    dictionary = mongoengine.DictField(required=True)
 
 class ListFieldTest(mongoengine.Document):
     stringlist = mongoengine.ListField(mongoengine.StringField())

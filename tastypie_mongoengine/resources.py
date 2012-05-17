@@ -227,23 +227,30 @@ class MongoEngineResource(resources.ModelResource):
 
         bundle = super(MongoEngineResource, self).full_hydrate(bundle)
 
-        # We redo check for required fields as Tastypie is not reliable here
+        # We redo check for required fields as Tastypie is not
+        # reliable as it does checks in an inconsistent way
+        # (https://github.com/toastdriven/django-tastypie/issues/491)
         for field_object in self.fields.values():
-            if field_object.null or field_object.readonly:
+            if field_object.blank or field_object.null or field_object.readonly:
                 continue
 
             if not field_object.attribute:
                 continue
 
-            if isinstance(field_object, mongoengine.ListField):
-                if not getattr(bundle.obj, field_object.attribute, []): # None, False are also not good
-                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
-            elif isinstance(field_object, mongoengine.DictField):
-                if not getattr(bundle.obj, field_object.attribute, {}): # None, False are also not good
-                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
-            else:
-                if getattr(bundle.obj, field_object.attribute, None) is None: # False could be good
-                    raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
+            # Tastypie also skips setting value if it is None, but this means
+            # updates to None are ignored: this is not good as it hides invalid
+            # PUT/PATCH REST requests (setting value to None which should fail
+            # validation (field required) is simply ignored and value is left
+            # as it is)
+            # (https://github.com/toastdriven/django-tastypie/issues/492)
+            # We hydrate field again only if existing value is not None
+            if getattr(bundle.obj, field_object.attribute, None) is not None and field_object.hydrate(bundle) is None:
+                setattr(bundle.obj, field_object.attribute, None)
+
+            # We are just trying to fix Tastypie here, for other "null" values
+            # like [] and {} we leave to validate bellow to catch them
+            if getattr(bundle.obj, field_object.attribute, None) is None:
+                raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
 
         # We validate MongoEngine object here so that possible exception
         # is thrown before going to MongoEngine layer, wrapped in
@@ -285,6 +292,22 @@ class MongoEngineResource(resources.ModelResource):
         except queryset.MultipleObjectsReturned, e:
             exp = base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
+
+    def obj_update(self, bundle, request=None, **kwargs):
+        # MongoEngine exceptions are separate from Django exceptions and Tastypie
+        # expects Django exceptions, so we catch it here ourselves and raise NotFound
+        try:
+            return super(MongoEngineResource, self).obj_update(bundle, request, **kwargs)
+        except queryset.DoesNotExist:
+            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+
+    def obj_delete(self, request=None, **kwargs):
+        # MongoEngine exceptions are separate from Django exceptions and Tastypie
+        # expects Django exceptions, so we catch it here ourselves and raise NotFound
+        try:
+            return super(MongoEngineResource, self).obj_delete(request, **kwargs)
+        except queryset.DoesNotExist:
+            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
 
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):

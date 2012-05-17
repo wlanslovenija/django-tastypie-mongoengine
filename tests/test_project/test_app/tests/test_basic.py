@@ -42,12 +42,19 @@ class BasicTest(test.TestCase):
         self.assertEqual(response['name'], 'Person 1')
         self.assertEqual(response['optional'], None)
 
+        # Covered by Tastypie
         response = self.c.post(self.makeUrl('person'), '{"name": null}', content_type='application/json')
         self.assertContains(response, 'field has no data', status_code=400)
 
+        # Covered by Tastypie
+        response = self.c.post(self.makeUrl('person'), '{}', content_type='application/json')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        # Covered by MongoEngine validation
         response = self.c.post(self.makeUrl('person'), '{"name": []}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
+        # Covered by MongoEngine validation
         response = self.c.post(self.makeUrl('person'), '{"name": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
         
@@ -89,6 +96,18 @@ class BasicTest(test.TestCase):
         response = json.loads(response.content)
 
         self.assertEqual(response['customer']['name'], 'Embeded person 1')
+
+        # Covered by MongoEngine validation
+        response = self.c.post(self.makeUrl('dictfieldtest'), '{"dictionary": {}}', content_type='application/json')
+        self.assertContains(response, 'required and cannot be empty', status_code=400)
+
+        # Covered by Tastypie
+        response = self.c.post(self.makeUrl('dictfieldtest'), '{"dictionary": null}', content_type='application/json')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        # Covered by MongoEngine validation
+        response = self.c.post(self.makeUrl('dictfieldtest'), '{"dictionary": false}', content_type='application/json')
+        self.assertContains(response, 'dictionaries may be used', status_code=400)
         
         response = self.c.post(self.makeUrl('dictfieldtest'), '{"dictionary": {"a": "abc", "number": 34}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -131,12 +150,19 @@ class BasicTest(test.TestCase):
         response = self.c.put(person1_uri, '{"name": "Person 1z"}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
+        # Covered by Tastypie
         response = self.c.put(person1_uri, '{"name": null}', content_type='application/json')
-        #self.assertContains(response, 'field has no data', status_code=400)
+        self.assertContains(response, 'field has no data', status_code=400)
 
+        # Covered by Tastypie
+        response = self.c.put(person1_uri, '{}', content_type='application/json')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        # Covered by MongoEngine validation
         response = self.c.put(person1_uri, '{"name": []}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
+        # Covered by MongoEngine validation
         response = self.c.put(person1_uri, '{"name": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
