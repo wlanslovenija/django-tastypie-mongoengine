@@ -5,7 +5,7 @@ from django.utils import simplejson as json, unittest
 from test_project.test_app import documents
 
 @utils.override_settings(DEBUG=True)
-class SimpleTest(test.TestCase):
+class BasicTest(test.TestCase):
     apiUrl = '/api/v1/'
     c = client.Client()
     
@@ -27,7 +27,7 @@ class SimpleTest(test.TestCase):
         
         return self.apiUrl + location.split(self.apiUrl)[1]
 
-    def test_basis(self):
+    def test_basic(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
