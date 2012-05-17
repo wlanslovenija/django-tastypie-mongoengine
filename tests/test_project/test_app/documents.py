@@ -6,6 +6,7 @@ class Person(mongoengine.Document):
     }
 
     name = mongoengine.StringField(max_length=200, required=True)
+    optional = mongoengine.StringField(max_length=200, required=False)
 
 class StrangePerson(Person):
     strange = mongoengine.StringField(max_length=100, required=True)

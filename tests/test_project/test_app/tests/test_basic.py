@@ -28,8 +28,19 @@ class BasicTest(test.TestCase):
         return self.apiUrl + location.split(self.apiUrl)[1]
 
     def test_basic(self):
+        # Testing POST
+
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+        person1_uri = response['location']
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1')
+        self.assertEqual(response['optional'], None)
 
         response = self.c.post(self.makeUrl('person'), '{"name": null}', content_type='application/json')
         self.assertContains(response, 'field has no data', status_code=400)
@@ -40,27 +51,23 @@ class BasicTest(test.TestCase):
         response = self.c.post(self.makeUrl('person'), '{"name": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
         
-        response = self.c.post(self.makeUrl('person'), '{"name": "Person 2"}', content_type='application/json')
+        response = self.c.post(self.makeUrl('person'), '{"name": "Person 2", "optional": "Optional"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        person_uri = response['location']
+        person2_uri = response['location']
 
-        response = self.c.get(person_uri)
+        response = self.c.get(person2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
         self.assertEqual(response['name'], 'Person 2')
+        self.assertEqual(response['optional'], 'Optional')
 
-        response = self.c.put(person_uri, '{"name": "Person 2a"}', content_type='application/json')
-        self.assertEqual(response.status_code, 204)
+        # Tastypie ignores additional field
+        response = self.c.post(self.makeUrl('person'), '{"name": "Person 3", "additional": "Additional"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
 
-        response = self.c.get(person_uri)
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.content)
-
-        self.assertEqual(response['name'], 'Person 2a')
-
-        response = self.c.post(self.makeUrl('customer'), '{"person": "%s"}' % self.getUri(person_uri), content_type='application/json')
+        response = self.c.post(self.makeUrl('customer'), '{"person": "%s"}' % self.getUri(person1_uri), content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         customer_uri = response['location']
@@ -69,7 +76,8 @@ class BasicTest(test.TestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['person']['name'], 'Person 2a')
+        self.assertEqual(response['person']['name'], 'Person 1')
+        self.assertEqual(response['person']['optional'], None)
         
         response = self.c.post(self.makeUrl('embededdocumentfieldtest'), '{"customer": {"name": "Embeded person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -118,9 +126,82 @@ class BasicTest(test.TestCase):
         self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1')
         self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2')
 
-        # TODO: Test delete
-        # TODO: Test put
+        # Testing PUT
+
+        response = self.c.put(person1_uri, '{"name": "Person 1z"}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.put(person1_uri, '{"name": null}', content_type='application/json')
+        #self.assertContains(response, 'field has no data', status_code=400)
+
+        response = self.c.put(person1_uri, '{"name": []}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
+
+        response = self.c.put(person1_uri, '{"name": {}}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1z')
+
+        response = self.c.put(customer_uri, '{"person": "%s"}' % self.getUri(person2_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(customer_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person 2')
+        self.assertEqual(response['person']['optional'], 'Optional')
+
+        response = self.c.put(embededdocumentfieldtest_uri, '{"customer": {"name": "Embeded person 1a"}}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embededdocumentfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['customer']['name'], 'Embeded person 1a')
+
+        response = self.c.put(dictfieldtest_uri, '{"dictionary": {"a": 341, "number": "abcd"}}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(dictfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['dictionary']['number'], 'abcd')
+        self.assertEqual(response['dictionary']['a'], 341)
+
+        response = self.c.put(listfieldtest_uri, '{"intlist": [1, 2, 4], "stringlist": ["a", "b", "c", "d"]}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(listfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['intlist'], [1, 2, 4])
+        self.assertEqual(response['stringlist'], ['a', 'b', 'c', 'd'])
+
+        response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embeded person 1a"}, {"name": "Embeded person 2a"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embeddedlistfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1a')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2a')
+
         # TODO: Test patch
+
+        response = self.c.delete(person1_uri)
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 404)
 
     def test_polymorphic(self):
         response = self.c.post(self.makeUrl('person'), '{"name": "Person 1"}', content_type='application/json; type=person')
