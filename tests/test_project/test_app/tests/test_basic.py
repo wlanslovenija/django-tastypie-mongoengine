@@ -227,8 +227,94 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1a')
         self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2a')
+        self.assertEqual(len(response['embeddedlist']), 2)
 
-        # TODO: Test patch
+        # Testing PATCH
+
+        response = self.c.patch(person1_uri, '{"name": "Person 1 PATCHED"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        # Covered by Tastypie
+        response = self.c.patch(person1_uri, '{"name": null}', content_type='application/json')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        # Should not do anything, but succeed
+        response = self.c.patch(person1_uri, '{}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        # Tastypie ignores additional field, should not do anything, but succeed
+        response = self.c.patch(person1_uri, '{"additional": "Additional"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        # Covered by Tastypie
+        response = self.c.patch(person1_uri, '{"optional": "Optional PATCHED"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        # Covered by MongoEngine validation
+        response = self.c.patch(person1_uri, '{"name": []}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
+
+        # Covered by MongoEngine validation
+        response = self.c.patch(person1_uri, '{"name": {}}', content_type='application/json')
+        self.assertContains(response, 'only accepts string values', status_code=400)
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1 PATCHED')
+        self.assertEqual(response['optional'], 'Optional PATCHED')
+
+        response = self.c.patch(customer_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(customer_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
+        self.assertEqual(response['person']['optional'], 'Optional PATCHED')
+
+        response = self.c.patch(embededdocumentfieldtest_uri, '{"customer": {"name": "Embeded person PATCHED"}}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(embededdocumentfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['customer']['name'], 'Embeded person PATCHED')
+
+        response = self.c.patch(dictfieldtest_uri, '{"dictionary": {"a": 42}}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(dictfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertFalse('number' in response['dictionary'])
+        self.assertEqual(response['dictionary']['a'], 42)
+
+        response = self.c.patch(listfieldtest_uri, '{"intlist": [1, 2, 42]}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(listfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['intlist'], [1, 2, 42])
+        self.assertEqual(response['stringlist'], ['a', 'b', 'c', 'd'])
+
+        response = self.c.patch(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embeded person PATCHED"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(embeddedlistfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person PATCHED')
+        self.assertEqual(len(response['embeddedlist']), 1)
+
+        # Testing DELETE
 
         response = self.c.delete(person1_uri)
         self.assertEqual(response.status_code, 204)

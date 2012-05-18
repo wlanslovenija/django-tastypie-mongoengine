@@ -7,12 +7,11 @@ from test_project.test_app import documents
 class StrangePersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.StrangePerson.objects.all()
-        allowed_methods = ()
 
 class PersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Person.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
         polymorphic = {
@@ -25,7 +24,7 @@ class CustomerResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.Customer.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
@@ -33,19 +32,19 @@ class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.EmbededDocumentFieldTest.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class DictFieldTestResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.DictFieldTest.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class ListFieldTestResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.ListFieldTest.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedListFieldTestResource(resources.MongoEngineResource):
@@ -53,13 +52,13 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedPersonResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.EmbeddedPerson
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
 class EmbeddedPersonListResource(EmbeddedPersonResource, resources.MongoEngineListResource):
