@@ -255,7 +255,7 @@ class MongoEngineResource(resources.ModelResource):
                     # This does not really set None in a way that calling
                     # getattr on bundle.obj would return None later on
                     # This is how MongoEngine is implemented
-                    # (https://github.com/toastdriven/django-tastypie/issues/493)
+                    # (https://github.com/hmarr/mongoengine/issues/505)
                     setattr(bundle.obj, field_object.attribute, None)
 
             if field_object.blank or field_object.null:
