@@ -250,7 +250,13 @@ class MongoEngineResource(resources.ModelResource):
             # (https://github.com/toastdriven/django-tastypie/issues/492)
             # We hydrate field again only if existing value is not None
             if getattr(bundle.obj, field_object.attribute, None) is not None:
-                value = field_object.hydrate(bundle)
+                # Tastypie also ignores missing fields in PUT,
+                # so we check for missing field here
+                # (https://github.com/toastdriven/django-tastypie/issues/496)
+                if not bundle.data.has_key(field_object.instance_name):
+                    value = None
+                else:
+                    value = field_object.hydrate(bundle)
                 if value is None:
                     # This does not really set None in a way that calling
                     # getattr on bundle.obj would return None later on

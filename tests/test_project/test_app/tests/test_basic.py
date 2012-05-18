@@ -159,13 +159,11 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         # Covered by Tastypie
         response = self.c.put(person1_uri, '{}', content_type='application/json')
-        # TODO
-        #self.assertContains(response, 'field has no data', status_code=400)
+        self.assertContains(response, 'field has no data', status_code=400)
 
         # Covered by Tastypie
         response = self.c.put(person1_uri, '{"optional": "Optional ZZZ"}', content_type='application/json')
-        # TODO
-        #self.assertContains(response, 'field has no data', status_code=400)
+        self.assertContains(response, 'field has no data', status_code=400)
 
         # Covered by MongoEngine validation
         response = self.c.put(person1_uri, '{"name": []}', content_type='application/json')
