@@ -13,6 +13,9 @@ from tastypie_mongoengine import fields
 
 CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 
+class NOT_HYDRATED:
+    pass
+
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
     This class has the same functionality as its supper ``ModelDeclarativeMetaclass``.
@@ -231,11 +234,13 @@ class MongoEngineResource(resources.ModelResource):
         # reliable as it does checks in an inconsistent way
         # (https://github.com/toastdriven/django-tastypie/issues/491)
         for field_object in self.fields.values():
-            if field_object.blank or field_object.null or field_object.readonly:
+            if field_object.readonly:
                 continue
 
             if not field_object.attribute:
                 continue
+
+            value = NOT_HYDRATED
 
             # Tastypie also skips setting value if it is None, but this means
             # updates to None are ignored: this is not good as it hides invalid
@@ -244,12 +249,21 @@ class MongoEngineResource(resources.ModelResource):
             # as it is)
             # (https://github.com/toastdriven/django-tastypie/issues/492)
             # We hydrate field again only if existing value is not None
-            if getattr(bundle.obj, field_object.attribute, None) is not None and field_object.hydrate(bundle) is None:
-                setattr(bundle.obj, field_object.attribute, None)
+            if getattr(bundle.obj, field_object.attribute, None) is not None:
+                value = field_object.hydrate(bundle)
+                if value is None:
+                    # This does not really set None in a way that calling
+                    # getattr on bundle.obj would return None later on
+                    # This is how MongoEngine is implemented
+                    # (https://github.com/toastdriven/django-tastypie/issues/493)
+                    setattr(bundle.obj, field_object.attribute, None)
+
+            if field_object.blank or field_object.null:
+                continue
 
             # We are just trying to fix Tastypie here, for other "null" values
             # like [] and {} we leave to validate bellow to catch them
-            if getattr(bundle.obj, field_object.attribute, None) is None:
+            if getattr(bundle.obj, field_object.attribute, None) is None or value is None: # We also have to check value, read comment above
                 raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
 
         # We validate MongoEngine object here so that possible exception
