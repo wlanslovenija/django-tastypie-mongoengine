@@ -36,5 +36,7 @@ INSTALLED_APPS = (
     'test_project.test_app',
 )
 
+MONGO_DATABASE_NAME = 'test_project'
+
 import mongoengine
-mongoengine.connect('test_project')
+mongoengine.connect(MONGO_DATABASE_NAME)

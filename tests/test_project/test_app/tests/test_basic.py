@@ -1,21 +1,13 @@
-from django import test
 from django.test import client, utils
 from django.utils import simplejson as json, unittest
 
+from test_project import test_runner
 from test_project.test_app import documents
 
 @utils.override_settings(DEBUG=True)
-class BasicTest(test.TestCase):
+class BasicTest(test_runner.MongoEngineTestCase):
     apiUrl = '/api/v1/'
     c = client.Client()
-    
-    def setUp(self):
-        documents.Person.drop_collection()
-        documents.Customer.drop_collection()
-        documents.EmbededDocumentFieldTest.drop_collection()
-        documents.DictFieldTest.drop_collection()
-        documents.ListFieldTest.drop_collection()
-        documents.EmbeddedListFieldTest.drop_collection()
     
     def makeUrl(self, link):
         return self.apiUrl + link + "/"
