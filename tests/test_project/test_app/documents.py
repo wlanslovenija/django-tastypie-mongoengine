@@ -27,6 +27,7 @@ class DictFieldTest(mongoengine.Document):
 class ListFieldTest(mongoengine.Document):
     stringlist = mongoengine.ListField(mongoengine.StringField())
     intlist = mongoengine.ListField(mongoengine.IntField())
+    anytype = mongoengine.ListField()
 
 class EmbeddedListFieldTest(mongoengine.Document):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
