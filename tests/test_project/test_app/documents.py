@@ -13,6 +13,7 @@ class StrangePerson(Person):
 
 class EmbeddedPerson(mongoengine.EmbeddedDocument):
     name = mongoengine.StringField(max_length=200, required=True)
+    optional = mongoengine.StringField(max_length=200, required=False)
     
 class Customer(mongoengine.Document):
     person = mongoengine.ReferenceField(Person)

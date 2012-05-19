@@ -16,6 +16,24 @@ CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 class NOT_HYDRATED:
     pass
 
+class ListQuerySet(list):
+    def filter(self, **kwargs):
+        result = self
+
+        if 'index' in kwargs:
+            index = kwargs.pop('index')
+            try:
+                # index can be always converted to int because of the matching regex
+                result = ListQuerySet([self[int(index)]])
+            except IndexError:
+                result = ListQuerySet()
+
+        if kwargs:
+            # TODO: Implement
+            tastypie_exceptions.InvalidFilterError("Unsupported filters: %s" % (kwargs,))
+
+        return result
+
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
     This class has the same functionality as its supper ``ModelDeclarativeMetaclass``.
@@ -78,7 +96,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
 class MongoEngineResource(resources.ModelResource):
     """
-    Minor enhancements to the stock ``ModelResource`` to allow subresources.
+    Adaptation of ``ModelResource`` to MongoEngine.
     """
 
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
@@ -86,30 +104,31 @@ class MongoEngineResource(resources.ModelResource):
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         field = self.fields[subresource_name]
         resource = field.to_class()
-        request_type = kwargs.pop('request_type')
-        return resource.dispatch(request_type, request, **kwargs)
+        return resource.dispatch(request=request, **kwargs)
 
     def base_urls(self):
         base = super(MongoEngineResource, self).base_urls()
 
+        embedded_urls = []
         embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedListField))
 
-        embedded_urls = []
-
         for name, obj in embedded:
-            embedded_urls.extend([
+            embedded_urls.extend((
                 url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-
-                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
                 ),
-            ])
+            ))
+
+        # TODO: Implement subresource schema output
+        # TODO: Implement subresource set processing
+
         return embedded_urls + base
 
     def get_object_list(self, request):
@@ -426,15 +445,8 @@ class MongoEngineResource(resources.ModelResource):
 
 class MongoEngineListResource(MongoEngineResource):
     """
-    An embedded MongoDB list acting as a collection. Used in conjunction with
-    EmbeddedListField.
+    A MongoEngine resourse used in conjunction with EmbeddedListField.
     """
-
-    def base_urls(self):
-        return super(MongoEngineResource, self).base_urls()
-
-    def dispatch_subresource(self, request, subresource_name, **kwargs):
-        return super(MongoEngineResource, self).dispatch_subresource(request, subresource_name, **kwargs)
 
     def __init__(self, parent=None, attribute=None, api_name=None):
         self.parent = parent
@@ -443,12 +455,7 @@ class MongoEngineListResource(MongoEngineResource):
 
         super(MongoEngineListResource, self).__init__(api_name)
 
-    def dispatch(self, request_type, request, **kwargs):
-        self.instance = self.safe_get(request, **kwargs)
-
-        return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
-
-    def safe_get(self, request, **kwargs):
+    def _safe_get(self, request, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
         try:
             del(filters['index'])
@@ -457,13 +464,18 @@ class MongoEngineListResource(MongoEngineResource):
 
         try:
             return self.parent.cached_obj_get(request=request, **filters)
-        except exceptions.ObjectDoesNotExist:
-            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpGone())
+        except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
+
+    def dispatch(self, request_type, request, **kwargs):
+        self.instance = self._safe_get(request, **kwargs)
+
+        return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
     def remove_api_resource_names(self, url_dict):
-        kwargs_subset = url_dict.copy()
+        kwargs_subset = super(MongoEngineListResource, self).remove_api_resource_names(url_dict)
 
-        for key in ['api_name', 'resource_name', 'subresource_name']:
+        for key in ['subresource_name', 'pk']:
             try:
                 del(kwargs_subset[key])
             except KeyError:
@@ -471,50 +483,67 @@ class MongoEngineListResource(MongoEngineResource):
 
         return kwargs_subset
 
+    def build_filters(self, filters=None):
+        # We do everything in apply_filters
+        return filters
+
+    def apply_sorting(self, obj_list, options=None):
+        # TODO: Implement?
+
+        if 'order_by' in options or 'sort_by' in options:
+            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotImplemented())
+
+        return obj_list
+
     def get_object_list(self, request):
         if not self.instance:
-            return []
+            return ListQuerySet()
 
         def add_index(index, obj):
             obj.pk = index
             return obj
 
-        return [add_index(index, obj) for index, obj in enumerate(getattr(self.instance, self.attribute))]
-
-    def obj_get_list(self, request=None, **kwargs):
-        return self.get_object_list(request)
-
-    def obj_get(self, request=None, **kwargs):
-        index = int(kwargs['index'])
-        try:
-            return self.get_object_list(request)[index]
-        except IndexError:
-            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpGone())
+        return ListQuerySet([add_index(index, obj) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, request=None, **kwargs):
+        bundle.obj = self._meta.object_class()
+
+        for key, value in kwargs.items():
+            setattr(bundle.obj, key, value)
+
         bundle = self.full_hydrate(bundle)
+
         object_list = getattr(self.instance, self.attribute)
         object_list.append(bundle.obj)
+
         bundle.obj.pk = unicode(len(object_list) - 1)
+
+        self.save_related(bundle)
+
         self.instance.save()
+
+        m2m_bundle = self.hydrate_m2m(bundle)
+        self.save_m2m(m2m_bundle)
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
-        if hasattr(kwargs, 'index'):
-            index = int(kwargs['index'])
-        else:
-            index = 0
+        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+            try:
+                bundle.obj = self.obj_get(request, **kwargs)
+            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
 
-        try:
-            bundle.obj = self.get_object_list(request)[index]
-        except IndexError:
-            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
         bundle = self.full_hydrate(bundle)
-        new_index = int(bundle.data['id'])
-        lst = getattr(self.instance, self.attribute)
-        lst.pop(index)
-        lst.insert(new_index, bundle.obj)
+
+        object_list = getattr(self.instance, self.attribute)
+        object_list[bundle.obj.pk] = bundle.obj
+
+        self.save_related(bundle)
+
         self.instance.save()
+
+        m2m_bundle = self.hydrate_m2m(bundle)
+        self.save_m2m(m2m_bundle)
         return bundle
 
     def obj_delete(self, request=None, **kwargs):
@@ -526,29 +555,6 @@ class MongoEngineListResource(MongoEngineResource):
     def obj_delete_list(self, request=None, **kwargs):
         setattr(self.instance, self.attribute, [])
         self.instance.save()
-
-    def put_detail(self, request, **kwargs):
-        """
-        Either updates an existing resource or creates a new one with the
-        provided data.
-
-        Calls ``obj_update`` with the provided data first, but falls back to
-        ``obj_create`` if the object does not already exist.
-
-        If a new resource is created, return ``HttpCreated`` (201 Created).
-        If an existing resource is modified, return ``HttpAccepted`` (204 No Content).
-        """
-
-        deserialized = self.deserialize(request, request.raw_post_data, format=request.META.get('CONTENT_TYPE', 'application/json'))
-        bundle = self.build_bundle(data=utils.dict_strip_unicode_keys(deserialized))
-        self.is_valid(bundle, request)
-
-        try:
-            updated_bundle = self.obj_update(bundle, request=request, **kwargs)
-            return http.HttpAccepted()
-        except:
-            updated_bundle = self.obj_create(bundle, request=request, **kwargs)
-            return http.HttpCreated(location=self.get_resource_uri(updated_bundle))
 
     def get_resource_uri(self, bundle_or_obj):
         if isinstance(bundle_or_obj, tastypie_bundle.Bundle):
@@ -563,9 +569,9 @@ class MongoEngineListResource(MongoEngineResource):
         }
 
         if hasattr(obj, 'parent'):
-            kwargs['pk'] = obj.parent._id
+            kwargs['pk'] = obj.parent.pk
         else:
-            kwargs['pk'] = self.instance.id
+            kwargs['pk'] = self.instance.pk
 
         api_name = self._meta.api_name or self.parent._meta.api_name
 
