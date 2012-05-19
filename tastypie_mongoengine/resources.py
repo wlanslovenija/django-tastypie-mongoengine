@@ -322,6 +322,8 @@ class MongoEngineResource(resources.ModelResource):
         data = super(MongoEngineResource, self).build_schema()
 
         for field_name, field_object in self.fields.items():
+            if isinstance(field_object, tastypie_fields.ForeignKey):
+                data['fields'][field_name]['related_uri'] = field_object.to_class().get_resource_list_uri()
             if hasattr(field_object, 'build_schema'):
                 data['fields'][field_name].update(field_object.build_schema())
 
