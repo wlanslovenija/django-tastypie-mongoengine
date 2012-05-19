@@ -95,16 +95,16 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['name'], 'Person 1')
         self.assertEqual(response['person']['optional'], None)
 
-        response = self.c.post(self.resourceListURI('embededdocumentfieldtest'), '{"customer": {"name": "Embeded person 1"}}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('embeddeddocumentfieldtest'), '{"customer": {"name": "Embedded person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        embededdocumentfieldtest_uri = response['location']
+        embeddeddocumentfieldtest_uri = response['location']
 
-        response = self.c.get(embededdocumentfieldtest_uri)
+        response = self.c.get(embeddeddocumentfieldtest_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['customer']['name'], 'Embeded person 1')
+        self.assertEqual(response['customer']['name'], 'Embedded person 1')
 
         # Covered by MongoEngine validation
         response = self.c.post(self.resourceListURI('dictfieldtest'), '{"dictionary": {}}', content_type='application/json')
@@ -142,7 +142,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['intlist'], [1, 2, 3, 4])
         self.assertEqual(response['stringlist'], ['a', 'b', 'c'])
 
-        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embeded person 1"}, {"name": "Embeded person 2"}]}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         embeddedlistfieldtest_uri = response['location']
@@ -151,8 +151,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1')
-        self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2')
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person 1')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2')
         self.assertEqual(len(response['embeddedlist']), 2)
 
         # Testing PUT
@@ -196,14 +196,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['name'], 'Person 2')
         self.assertEqual(response['person']['optional'], 'Optional')
 
-        response = self.c.put(embededdocumentfieldtest_uri, '{"customer": {"name": "Embeded person 1a"}}', content_type='application/json')
+        response = self.c.put(embeddeddocumentfieldtest_uri, '{"customer": {"name": "Embedded person 1a"}}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
-        response = self.c.get(embededdocumentfieldtest_uri)
+        response = self.c.get(embeddeddocumentfieldtest_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['customer']['name'], 'Embeded person 1a')
+        self.assertEqual(response['customer']['name'], 'Embedded person 1a')
 
         response = self.c.put(dictfieldtest_uri, '{"dictionary": {"a": 341, "number": "abcd"}}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
@@ -225,18 +225,18 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['intlist'], [1, 2, 4])
         self.assertEqual(response['stringlist'], ['a', 'b', 'c', 'd'])
 
-        response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embeded person 1a"}, {"name": "Embeded person 2a"}]}', content_type='application/json')
+        response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embedded person 1a"}, {"name": "Embedded person 2a"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
         response = self.c.get(embeddedlistfieldtest_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1a')
-        self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2a')
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person 1a')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2a')
         self.assertEqual(len(response['embeddedlist']), 2)
 
-        response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embeded person 123"}, {}]}', content_type='application/json')
+        response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embedded person 123"}, {}]}', content_type='application/json')
         self.assertContains(response, 'field has no data', status_code=400)
 
         # Testing PATCH
@@ -285,14 +285,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
         self.assertEqual(response['person']['optional'], 'Optional PATCHED')
 
-        response = self.c.patch(embededdocumentfieldtest_uri, '{"customer": {"name": "Embeded person PATCHED"}}', content_type='application/json')
+        response = self.c.patch(embeddeddocumentfieldtest_uri, '{"customer": {"name": "Embedded person PATCHED"}}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
 
-        response = self.c.get(embededdocumentfieldtest_uri)
+        response = self.c.get(embeddeddocumentfieldtest_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['customer']['name'], 'Embeded person PATCHED')
+        self.assertEqual(response['customer']['name'], 'Embedded person PATCHED')
 
         response = self.c.patch(dictfieldtest_uri, '{"dictionary": {"a": 42}}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
@@ -314,14 +314,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['intlist'], [1, 2, 42])
         self.assertEqual(response['stringlist'], ['a', 'b', 'c', 'd'])
 
-        response = self.c.patch(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embeded person PATCHED"}]}', content_type='application/json')
+        response = self.c.patch(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embedded person PATCHED"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
 
         response = self.c.get(embeddedlistfieldtest_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person PATCHED')
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person PATCHED')
         self.assertEqual(len(response['embeddedlist']), 1)
 
         # Testing DELETE
@@ -333,7 +333,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_embeddedlist(self):
-        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embeded person 1"}, {"name": "Embeded person 2", "optional": "Optional"}]}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         mainresource_uri = response['location']
@@ -342,9 +342,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['embeddedlist'][0]['name'], 'Embeded person 1')
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person 1')
         self.assertEqual(response['embeddedlist'][0]['optional'], None)
-        self.assertEqual(response['embeddedlist'][1]['name'], 'Embeded person 2')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2')
         self.assertEqual(response['embeddedlist'][1]['optional'], 'Optional')
         self.assertEqual(len(response['embeddedlist']), 2)
 
@@ -354,7 +354,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 1')
+        self.assertEqual(response['name'], 'Embedded person 1')
         self.assertEqual(response['optional'], None)
         self.assertEqual(response['resource_uri'], embedded1_uri)
 
@@ -364,7 +364,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 2')
+        self.assertEqual(response['name'], 'Embedded person 2')
         self.assertEqual(response['optional'], 'Optional')
         self.assertEqual(response['resource_uri'], embedded2_uri)
 
@@ -375,14 +375,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         embeddedresource_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/'
 
-        response = self.c.post(embeddedresource_uri, '{"name": "Embeded person 3"}', content_type='application/json')
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3"}', content_type='application/json')
         self.assertRedirects(response, embedded3_uri, status_code=201)
 
         response = self.c.get(embedded3_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 3')
+        self.assertEqual(response['name'], 'Embedded person 3')
         self.assertEqual(response['optional'], None)
         self.assertEqual(response['resource_uri'], embedded3_uri)
 
@@ -394,23 +394,23 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         embedded4_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/3/'
 
-        response = self.c.post(embeddedresource_uri, '{"name": "Embeded person 4", "optional": 42}', content_type='application/json')
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": 42}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
-        response = self.c.post(embeddedresource_uri, '{"name": "Embeded person 4", "optional": []}', content_type='application/json')
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": []}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
-        response = self.c.post(embeddedresource_uri, '{"name": "Embeded person 4", "optional": {}}', content_type='application/json')
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
-        response = self.c.post(embeddedresource_uri, '{"name": "Embeded person 4", "optional": "Foobar"}', content_type='application/json')
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": "Foobar"}', content_type='application/json')
         self.assertRedirects(response, embedded4_uri, status_code=201)
 
         response = self.c.get(embedded4_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 4')
+        self.assertEqual(response['name'], 'Embedded person 4')
         self.assertEqual(response['optional'], 'Foobar')
         self.assertEqual(response['resource_uri'], embedded4_uri)
 
@@ -420,14 +420,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['embeddedlist']), 4)
 
-        response = self.c.put(embedded4_uri, '{"name": "Embeded person 4a", "optional": "Foobar PUT"}', content_type='application/json')
+        response = self.c.put(embedded4_uri, '{"name": "Embedded person 4a", "optional": "Foobar PUT"}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
         response = self.c.get(embedded4_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 4a')
+        self.assertEqual(response['name'], 'Embedded person 4a')
         self.assertEqual(response['optional'], 'Foobar PUT')
         self.assertEqual(response['resource_uri'], embedded4_uri)
 
@@ -435,11 +435,11 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['embeddedlist'][3]['name'], 'Embeded person 4a')
+        self.assertEqual(response['embeddedlist'][3]['name'], 'Embedded person 4a')
         self.assertEqual(response['embeddedlist'][3]['optional'], 'Foobar PUT')
         self.assertEqual(len(response['embeddedlist']), 4)
 
-        response = self.c.put(embedded4_uri, '{"name": "Embeded person 4a", "optional": []}', content_type='application/json')
+        response = self.c.put(embedded4_uri, '{"name": "Embedded person 4a", "optional": []}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
         response = self.c.put(embedded4_uri, '{}', content_type='application/json')
@@ -448,25 +448,25 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.put(embedded4_uri, '{"optional": "Optional"}', content_type='application/json')
         self.assertContains(response, 'field has no data', status_code=400)
 
-        response = self.c.put(embedded4_uri, '{"name": "Embeded person 4 ZZZ"}', content_type='application/json')
+        response = self.c.put(embedded4_uri, '{"name": "Embedded person 4 ZZZ"}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
         response = self.c.get(embedded4_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 4 ZZZ')
+        self.assertEqual(response['name'], 'Embedded person 4 ZZZ')
         self.assertEqual(response['optional'], None)
         self.assertEqual(response['resource_uri'], embedded4_uri)
 
-        response = self.c.put(embedded1_uri, '{"name": "Embeded person 1 ZZZ"}', content_type='application/json')
+        response = self.c.put(embedded1_uri, '{"name": "Embedded person 1 ZZZ"}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
         response = self.c.get(embedded1_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['name'], 'Embeded person 1 ZZZ')
+        self.assertEqual(response['name'], 'Embedded person 1 ZZZ')
         self.assertEqual(response['optional'], None)
         self.assertEqual(response['resource_uri'], embedded1_uri)
 

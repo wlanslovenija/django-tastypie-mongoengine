@@ -18,7 +18,7 @@ class EmbeddedPerson(mongoengine.EmbeddedDocument):
 class Customer(mongoengine.Document):
     person = mongoengine.ReferenceField(Person)
 
-class EmbededDocumentFieldTest(mongoengine.Document):
+class EmbeddedDocumentFieldTest(mongoengine.Document):
     customer = mongoengine.EmbeddedDocumentField(EmbeddedPerson)
 
 class DictFieldTest(mongoengine.Document):

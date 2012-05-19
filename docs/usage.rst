@@ -60,7 +60,7 @@ Embeds a resource inside another resource just like you would in MongoEngine::
 
     from tastypie_mongoengine import fields
 
-    class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
+    class EmbeddedDocumentFieldTestResource(resources.MongoEngineResource):
         customer = fields.EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
         ...
 

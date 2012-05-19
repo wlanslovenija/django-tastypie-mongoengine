@@ -27,11 +27,11 @@ class CustomerResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
-class EmbededDocumentFieldTestResource(resources.MongoEngineResource):
+class EmbeddedDocumentFieldTestResource(resources.MongoEngineResource):
     customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer')
 
     class Meta:
-        queryset = documents.EmbededDocumentFieldTest.objects.all()
+        queryset = documents.EmbeddedDocumentFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
 
