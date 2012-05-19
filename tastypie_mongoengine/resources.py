@@ -31,7 +31,6 @@ class ListQuerySet(datastructures.SortedDict):
 
         for field, value in kwargs.iteritems():
             if '__' in field:
-                # TODO: Implement
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
@@ -143,9 +142,6 @@ class MongoEngineResource(resources.ModelResource):
                     name='api_dispatch_subresource_detail',
                 ),
             ))
-
-        # TODO: Implement subresource schema output
-        # TODO: Implement subresource set processing
 
         return embedded_urls + base
 
@@ -376,25 +372,25 @@ class MongoEngineResource(resources.ModelResource):
         result = default
 
         # TODO: This should probably be changed to a series of isinstance calls
-        if f.__class__.__name__ in ('ComplexDateTimeField', 'DateTimeField'):
+        if isinstance(f, (mongoengine.ComplexDateTimeField, mongoengine.DateTimeField)):
             result = tastypie_fields.DateTimeField
-        elif f.__class__.__name__ in ('BooleanField',):
+        elif isinstance(f, mongoengine.BooleanField):
             result = tastypie_fields.BooleanField
-        elif f.__class__.__name__ in ('FloatField',):
+        elif isinstance(f, mongoengine.FloatField):
             result = tastypie_fields.FloatField
-        elif f.__class__.__name__ in ('DecimalField',):
+        elif isinstance(f, mongoengine.DecimalField):
             result = tastypie_fields.DecimalField
-        elif f.__class__.__name__ in ('IntField',):
+        elif isinstance(f, mongoengine.IntField):
             result = tastypie_fields.IntegerField
-        elif f.__class__.__name__ in ('FileField', 'BinaryField'):
+        elif isinstance(f, (mongoengine.FileField, mongoengine.BinaryField)):
             result = tastypie_fields.FileField
-        elif f.__class__.__name__ in ('DictField',):
+        elif isinstance(f, mongoengine.DictField):
             result = tastypie_fields.DictField
-        elif f.__class__.__name__ in ('ListField',):
+        elif isinstance(f, mongoengine.ListField):
             result = tastypie_fields.ListField
-        elif f.__class__.__name__ in ('GeoPointField',):
+        elif isinstance(f, mongoengine.GeoPointField):
             result = tastypie_fields.ListField
-        elif f.__class__.__name__ in ('ObjectIdField',):
+        elif isinstance(f, mongoengine.ObjectIdField):
             result = fields.ObjectId
 
         return result
@@ -509,8 +505,6 @@ class MongoEngineListResource(MongoEngineResource):
         return filters
 
     def apply_sorting(self, obj_list, options=None):
-        # TODO: Implement?
-
         if 'order_by' in options or 'sort_by' in options:
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotImplemented())
 

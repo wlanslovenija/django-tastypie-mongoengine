@@ -636,5 +636,5 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['name'], 'Person 2c')
         self.assertEqual(response['resource_type'], 'person')
 
-        # TODO: Test patch requests (https://code.djangoproject.com/ticket/17797)
-        # TODO: Test delete
+        # TODO: Test PATCH
+        # TODO: Test DELETE
