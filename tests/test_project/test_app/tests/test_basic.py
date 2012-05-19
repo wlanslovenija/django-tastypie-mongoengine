@@ -143,6 +143,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['intlist'], [1, 2, 3, 4])
         self.assertEqual(response['stringlist'], ['a', 'b', 'c'])
 
+        # Field is not required
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": []}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
