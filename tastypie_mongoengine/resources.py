@@ -20,14 +20,6 @@ class ListQuerySet(list):
     def filter(self, **kwargs):
         result = self
 
-        if 'index' in kwargs:
-            index = kwargs.pop('index')
-            try:
-                # index can be always converted to int because of the matching regex
-                result = [result[int(index)]]
-            except IndexError:
-                result = []
-
         for field, value in kwargs.items():
             if '__' in field:
                 # TODO: Implement
@@ -463,10 +455,6 @@ class MongoEngineListResource(MongoEngineResource):
 
     def _safe_get(self, request, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
-        try:
-            del(filters['index'])
-        except KeyError:
-            pass
 
         try:
             return self.parent.cached_obj_get(request=request, **filters)
@@ -474,14 +462,21 @@ class MongoEngineListResource(MongoEngineResource):
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
 
     def dispatch(self, request_type, request, **kwargs):
+        index = None
+        if 'index' in kwargs:
+            index = kwargs.pop('index')
+
         self.instance = self._safe_get(request, **kwargs)
+
+        # We use pk as index from now on
+        kwargs['pk'] = index
 
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
     def remove_api_resource_names(self, url_dict):
         kwargs_subset = super(MongoEngineListResource, self).remove_api_resource_names(url_dict)
 
-        for key in ['subresource_name', 'pk']:
+        for key in ['subresource_name']:
             try:
                 del(kwargs_subset[key])
             except KeyError:
@@ -506,7 +501,7 @@ class MongoEngineListResource(MongoEngineResource):
             return ListQuerySet()
 
         def add_index(index, obj):
-            obj.pk = index
+            obj.pk = unicode(index)
             return obj
 
         return ListQuerySet([add_index(index, obj) for index, obj in enumerate(getattr(self.instance, self.attribute))])
@@ -542,7 +537,7 @@ class MongoEngineListResource(MongoEngineResource):
         bundle = self.full_hydrate(bundle)
 
         object_list = getattr(self.instance, self.attribute)
-        object_list[bundle.obj.pk] = bundle.obj
+        object_list[int(bundle.obj.pk)] = bundle.obj
 
         self.save_related(bundle)
 
