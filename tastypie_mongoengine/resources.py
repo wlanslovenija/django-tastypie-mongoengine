@@ -1,8 +1,9 @@
-import re
+import itertools, re
 
 from django.conf.urls.defaults import url
 from django.core import exceptions
 from django.db.models import base
+from django.utils import datastructures
 
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
@@ -16,21 +17,40 @@ CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 class NOT_HYDRATED:
     pass
 
-class ListQuerySet(list):
+class ListQuerySet(datastructures.SortedDict):
     def filter(self, **kwargs):
         result = self
 
-        for field, value in kwargs.items():
+        # pk optimization
+        if 'pk' in kwargs:
+            pk = kwargs.pop('pk')
+            if pk in result:
+                result = ListQuerySet({pk: result[pk]})
+            else:
+                result = ListQuerySet()
+
+        for field, value in kwargs.iteritems():
             if '__' in field:
                 # TODO: Implement
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
-                result = [obj for obj in result if getattr(obj, field) == value]
-            except AttributeError:
+                result = ListQuerySet({(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value})
+            except AttributeError, e:
                 raise queryset.InvalidQueryError('Cannot resolve field "%s"' % (field,))
 
-        return ListQuerySet(result)
+        return result
+
+    def __iter__(self):
+        return self.itervalues()
+
+    def __getitem__(self, key):
+        # Tastypie access object_list[0], so we pretend to be
+        # a list here (order is same as our iteration order)
+        if isinstance(key, (int, long)):
+            return itertools.islice(self, key, key+1).next()
+        else:
+            return super(ListQuerySet, self).__getitem__(key)
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -85,7 +105,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         elif 'resource_type' in new_class.base_fields and not 'resource_type' in attrs:
             del(new_class.base_fields['resource_type'])
 
-        for typ, resource in type_map.items():
+        for typ, resource in type_map.iteritems():
             if resource == 'self':
                 type_map[typ] = new_class
                 break
@@ -108,7 +128,7 @@ class MongoEngineResource(resources.ModelResource):
         base = super(MongoEngineResource, self).base_urls()
 
         embedded_urls = []
-        embedded = ((name, obj) for name, obj in self.fields.items() if isinstance(obj, fields.EmbeddedListField))
+        embedded = ((name, obj) for name, obj in self.fields.iteritems() if isinstance(obj, fields.EmbeddedListField))
 
         for name, obj in embedded:
             embedded_urls.extend((
@@ -198,7 +218,7 @@ class MongoEngineResource(resources.ModelResource):
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).get_schema(request, **kwargs))
 
     def _get_resource_from_class(self, type_map, cls):
-        for resource in type_map.values():
+        for resource in type_map.itervalues():
             if resource._meta.object_class is cls:
                 return resource
         raise KeyError(cls)
@@ -208,7 +228,7 @@ class MongoEngineResource(resources.ModelResource):
         # that we do not miss real match, so if self._meta.object_class
         # matches, we still check other items, otherwise we return immediately
         res = None
-        for typ, resource in type_map.items():
+        for typ, resource in type_map.iteritems():
             if resource._meta.object_class is cls:
                 if resource._meta.object_class is self._meta.object_class:
                     res = typ
@@ -250,7 +270,7 @@ class MongoEngineResource(resources.ModelResource):
         # We redo check for required fields as Tastypie is not
         # reliable as it does checks in an inconsistent way
         # (https://github.com/toastdriven/django-tastypie/issues/491)
-        for field_object in self.fields.values():
+        for field_object in self.fields.itervalues():
             if field_object.readonly:
                 continue
 
@@ -504,7 +524,7 @@ class MongoEngineListResource(MongoEngineResource):
             obj.pk = unicode(index)
             return obj
 
-        return ListQuerySet([add_index(index, obj) for index, obj in enumerate(getattr(self.instance, self.attribute))])
+        return ListQuerySet({(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))})
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = self._meta.object_class()
