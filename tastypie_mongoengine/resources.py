@@ -568,9 +568,15 @@ class MongoEngineListResource(MongoEngineResource):
         return bundle
 
     def obj_delete(self, request=None, **kwargs):
-        index = int(kwargs['index'])
-        self.obj_get(request, **kwargs)
-        getattr(self.instance, self.attribute).pop(index)
+        obj = kwargs.pop('_obj', None)
+
+        if not getattr(obj, 'pk', None):
+            try:
+                obj = self.obj_get(request, **kwargs)
+            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                raise NotFound("A model instance matching the provided arguments could not be found.")
+
+        getattr(self.instance, self.attribute).pop(int(obj.pk))
         self.instance.save()
 
     def get_resource_uri(self, bundle_or_obj):

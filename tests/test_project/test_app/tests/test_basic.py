@@ -334,6 +334,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 404)
 
     def test_embeddedlist(self):
+        # Testing POST
+
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
@@ -421,6 +423,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['embeddedlist']), 4)
 
+        # Testing PUT
+
         response = self.c.put(embedded4_uri, '{"name": "Embedded person 4a", "optional": "Foobar PUT"}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
@@ -477,6 +481,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['embeddedlist']), 4)
 
+        # Testing PATCH
+
         response = self.c.patch(embedded1_uri, '{"name": "Embedded person 1 PATCHED"}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
 
@@ -487,6 +493,49 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['name'], 'Embedded person 1 PATCHED')
         self.assertEqual(response['optional'], None)
         self.assertEqual(response['resource_uri'], embedded1_uri)
+
+        # Testing DELETE
+
+        response = self.c.delete(embedded4_uri)
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embedded4_uri)
+        self.assertEqual(response.status_code, 404)
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['embeddedlist']), 3)
+
+        response = self.c.get(embedded2_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Embedded person 2')
+        self.assertEqual(response['optional'], 'Optional')
+        self.assertEqual(response['resource_uri'], embedded2_uri)
+
+        response = self.c.delete(embedded2_uri)
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embedded2_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        # Content from embedded3_uri moves in place of embedded2_uri
+        self.assertEqual(response['name'], 'Embedded person 3')
+        self.assertEqual(response['optional'], None)
+        self.assertEqual(response['resource_uri'], embedded2_uri)
+
+        response = self.c.get(embedded3_uri)
+        self.assertEqual(response.status_code, 404)
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['embeddedlist']), 2)
 
     def test_polymorphic(self):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 1"}', content_type='application/json; type=person')
