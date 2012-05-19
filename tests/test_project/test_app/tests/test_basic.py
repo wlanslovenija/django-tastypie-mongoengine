@@ -541,6 +541,31 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['embeddedlist']), 2)
 
+    def test_polymorphic_schema(self):
+        person_schema_uri = self.resourceListURI('person') + 'schema/'
+
+        response = self.c.get(person_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 5)
+        self.assertTrue('resource_type' in response['fields'])
+        self.assertTrue('strange' not in response['fields'])
+        self.assertEqual(len(response['resource_types']), 2)
+        self.assertTrue('person' in response['resource_types'])
+        self.assertTrue('strangeperson' in response['resource_types'])
+
+        response = self.c.get(person_schema_uri, {'type': 'strangeperson'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 6)
+        self.assertTrue('resource_type' in response['fields'])
+        self.assertTrue('strange' in response['fields'])
+        self.assertEqual(len(response['resource_types']), 2)
+        self.assertTrue('person' in response['resource_types'])
+        self.assertTrue('strangeperson' in response['resource_types'])
+
     def test_polymorphic(self):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 1"}', content_type='application/json; type=person')
         self.assertEqual(response.status_code, 201)

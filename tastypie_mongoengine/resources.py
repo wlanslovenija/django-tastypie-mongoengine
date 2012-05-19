@@ -157,6 +157,8 @@ class MongoEngineResource(resources.ModelResource):
         match = CONTENT_TYPE_RE.match(request.META.get('CONTENT_TYPE', ''))
         if match:
             return match.group(1)
+        elif 'type' in request.GET:
+            return request.GET.get('type')
         else:
             return None
 
