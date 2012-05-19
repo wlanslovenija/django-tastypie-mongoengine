@@ -321,6 +321,10 @@ class MongoEngineResource(resources.ModelResource):
     def build_schema(self):
         data = super(MongoEngineResource, self).build_schema()
 
+        for field_name, field_object in self.fields.items():
+            if hasattr(field_object, 'build_schema'):
+                data['fields'][field_name].update(field_object.build_schema())
+
         type_map = getattr(self._meta, 'polymorphic', {})
         if not type_map:
             return data

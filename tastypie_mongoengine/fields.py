@@ -20,12 +20,11 @@ class ObjectId(fields.ApiField):
 
 class EmbeddedDocumentField(fields.ToOneField):
     """
-    Embeds a resource inside another resource just like you would in MongoDB.
+    Embeds a resource inside another resource just like you would in MongoEngine.
     """
 
     is_related = False
     dehydrated_type = 'embedded'
-    help_text = "A single related resource. A set of nested resource data."
 
     def __init__(self, embedded, attribute, null=False, help_text=None):
         '''
@@ -38,8 +37,20 @@ class EmbeddedDocumentField(fields.ToOneField):
             attribute=attribute,
             null=null,
             full=True,
-            help_text=help_text,
         )
+
+        self._help_text = help_text
+
+    @property
+    def help_text(self):
+        if not self._help_text:
+            self._help_text = "Embedded document (%s)." % (self.to_class()._meta.resource_name,)
+        return self._help_text
+
+    def build_schema(self):
+        return {
+            'embedded_fields': self.to_class().build_schema()['fields'],
+        }
 
     def hydrate(self, bundle):
         return super(EmbeddedDocumentField, self).hydrate(bundle).obj
