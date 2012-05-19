@@ -7,8 +7,9 @@ from django.utils import simplejson as json, unittest
 from test_project import test_runner
 from test_project.test_app import documents
 
-# TODO: Test set operations on main resources
-# TODO: Test ordering, filtering on main resources
+# TODO: Test set operations
+# TODO: Test bulk operations
+# TODO: Test ordering, filtering
 
 @utils.override_settings(DEBUG=True)
 class BasicTest(test_runner.MongoEngineTestCase):
@@ -475,6 +476,17 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['embeddedlist']), 4)
+
+        response = self.c.patch(embedded1_uri, '{"name": "Embedded person 1 PATCHED"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(embedded1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Embedded person 1 PATCHED')
+        self.assertEqual(response['optional'], None)
+        self.assertEqual(response['resource_uri'], embedded1_uri)
 
     def test_polymorphic(self):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 1"}', content_type='application/json; type=person')

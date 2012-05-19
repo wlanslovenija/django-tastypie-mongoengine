@@ -24,15 +24,21 @@ class ListQuerySet(list):
             index = kwargs.pop('index')
             try:
                 # index can be always converted to int because of the matching regex
-                result = ListQuerySet([self[int(index)]])
+                result = [result[int(index)]]
             except IndexError:
-                result = ListQuerySet()
+                result = []
 
-        if kwargs:
-            # TODO: Implement
-            tastypie_exceptions.InvalidFilterError("Unsupported filters: %s" % (kwargs,))
+        for field, value in kwargs.items():
+            if '__' in field:
+                # TODO: Implement
+                raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
-        return result
+            try:
+                result = [obj for obj in result if getattr(obj, field) == value]
+            except AttributeError:
+                raise queryset.InvalidQueryError('Cannot resolve field "%s"' % (field,))
+
+        return ListQuerySet(result)
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -550,10 +556,6 @@ class MongoEngineListResource(MongoEngineResource):
         index = int(kwargs['index'])
         self.obj_get(request, **kwargs)
         getattr(self.instance, self.attribute).pop(index)
-        self.instance.save()
-
-    def obj_delete_list(self, request=None, **kwargs):
-        setattr(self.instance, self.attribute, [])
         self.instance.save()
 
     def get_resource_uri(self, bundle_or_obj):
