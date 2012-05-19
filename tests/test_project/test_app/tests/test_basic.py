@@ -337,6 +337,31 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(person1_uri)
         self.assertEqual(response.status_code, 404)
 
+    def test_schema(self):
+        embeddeddocumentfieldtest_schema_uri = self.resourceListURI('embeddeddocumentfieldtest') + 'schema/'
+
+        response = self.c.get(embeddeddocumentfieldtest_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 3)
+        self.assertTrue('customer' in response['fields'])
+        self.assertTrue('embedded_fields' in response['fields']['customer'])
+        self.assertEqual(len(response['fields']['customer']['embedded_fields']), 2)
+        self.assertTrue('name' in response['fields']['customer']['embedded_fields'])
+        self.assertTrue('optional' in response['fields']['customer']['embedded_fields'])
+
+        customer_schema_uri = self.resourceListURI('customer') + 'schema/'
+
+        response = self.c.get(customer_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 3)
+        self.assertTrue('person' in response['fields'])
+        self.assertTrue('related_uri' in response['fields']['person'])
+        self.assertEqual(response['fields']['person']['related_uri'], self.resourceListURI('person'))
+
     def test_embeddedlist(self):
         # Testing POST
 
