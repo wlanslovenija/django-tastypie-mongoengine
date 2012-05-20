@@ -43,7 +43,7 @@ class CustomerResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class EmbeddedDocumentFieldTestResource(resources.MongoEngineResource):
-    customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer')
+    customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer', null=True)
 
     class Meta:
         queryset = documents.EmbeddedDocumentFieldTest.objects.all()
@@ -63,7 +63,7 @@ class ListFieldTestResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class EmbeddedListFieldTestResource(resources.MongoEngineResource):
-    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='embeddedlist', full=True)
+    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='embeddedlist', full=True, null=True)
 
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
