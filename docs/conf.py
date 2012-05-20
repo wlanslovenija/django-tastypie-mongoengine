@@ -45,7 +45,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'django-tastypie-mongoengine'
-copyright = u'2012, wlan slovenia'
+copyright = u'2012, wlan slovenija'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -154,10 +154,10 @@ html_static_path = ['_static']
 #html_show_sourcelink = True
 
 # If true, "Created using Sphinx" is shown in the HTML footer. Default is True.
-#html_show_sphinx = True
+html_show_sphinx = False
 
 # If true, "(C) Copyright ..." is shown in the HTML footer. Default is True.
-#html_show_copyright = True
+html_show_copyright = False
 
 # If true, an OpenSearch description file will be output, and all pages will
 # contain a <link> tag referring to it.  The value of this option must be the
@@ -188,7 +188,7 @@ latex_elements = {
 # (source start file, target name, title, author, documentclass [howto/manual]).
 latex_documents = [
   ('index', 'django-tastypie-mongoengine.tex', u'django-tastypie-mongoengine Documentation',
-   u'wlan slovenia', 'manual'),
+   u'wlan slovenija', 'manual'),
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -218,7 +218,7 @@ latex_documents = [
 # (source start file, name, description, authors, manual section).
 man_pages = [
     ('index', 'django-tastypie-mongoengine', u'django-tastypie-mongoengine Documentation',
-     [u'wlan slovenia'], 1)
+     [u'wlan slovenija'], 1)
 ]
 
 # If true, show URL addresses after external links.
@@ -232,7 +232,7 @@ man_pages = [
 #  dir menu entry, description, category)
 texinfo_documents = [
   ('index', 'django-tastypie-mongoengine', u'django-tastypie-mongoengine Documentation',
-   u'wlan slovenia', 'django-tastypie-mongoengine', 'Binding between django-tastypie and mongoengine.',
+   u'wlan slovenija', 'django-tastypie-mongoengine', 'Binding between django-tastypie and mongoengine.',
    'Miscellaneous'),
 ]
 

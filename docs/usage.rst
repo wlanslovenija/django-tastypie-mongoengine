@@ -2,12 +2,13 @@
 Usage
 =====
 
-Usage for simple cases is very similar as with django-tastypie. You should read their tutorial_ first.
+Usage for simple cases is very similar as with django-tastypie. You should read
+their tutorial_ first.
 
 .. _tutorial: http://django-tastypie.readthedocs.org/en/latest/tutorial.html
 
-Only difference is when you are defining API resource files.
-There you must use ``MongoEngineResource`` instead of ``ModelResource``.
+The main difference is when you are defining API resource files. There you must
+use ``MongoEngineResource`` instead of ``ModelResource``.
 
 Simple Example
 ==============
@@ -33,50 +34,103 @@ in Meta class of your resource declaration instead of queryset::
     class EmbeddedPersonResource(resources.MongoEngineResource):
         class Meta:
             object_class = documents.EmbeddedPerson
-            ...
+        ...
     
 When you are using normal MongoEngine ``Document`` you can use ``queryset`` or ``object_class``.
 
 Related and Embedded Fields
 ===========================
 
-All related fields you want exposed through API must be manually defined.
+Most document fields are automatically mapped to corresponding django-tastypie
+fields but some are not.
 
-ForeignKey
-----------
+ReferenceField
+--------------
 
 ::
 
-    from tastypie import fields as tastypie_fields
+    from tastypie_mongoengine import fields
     
     class CustomerResource(resources.MongoEngineResource):
-        person = tastypie_fields.ForeignKey(to='test_app.api.resources.PersonResource', attribute='person', full=True)
+        person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
         ...
 
 EmbeddedDocumentField
 ---------------------
 
-Embeds a resource inside another resource just like you would in MongoEngine::
+Embeds a resource inside another resource just like you do in MongoEngine::
 
     from tastypie_mongoengine import fields
 
     class EmbeddedDocumentFieldTestResource(resources.MongoEngineResource):
-        customer = fields.EmbeddedDocumentField(embedded='test_app.api.resources.EmbeddedPersonResource', attribute='customer')
+        customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer')
         ...
 
-MongoEngineListResource
-=======================
+EmbeddedListField
+-----------------
 
-This resource is used instead of ``MongoEngineResource`` when you want an editable list of embedded documents.
-It is used in conjunction with ``EmbeddedSortedListField`` or ``EmbeddedListField``.
+If you are using ``ListField`` containing a ``EmbeddedDocumentField`` in
+MongoEngine document, it should be mapped to ``EmbeddedListField``::
 
-::
+    from tastypie_mongoengine import fields
 
-    class EmbeddedPersonListResource(resources.MongoEngineListResource):
+    class EmbeddedListFieldTestResource(resources.MongoEngineResource):
+        embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='embeddedlist', full=True)
+        ...
+
+``EmbeddedListField`` also exposes its embedded documents as subresources, so
+you can access them directly. For example, URI of the first element of the list
+above could be
+``/api/v1/embeddedlistfieldtest/4fb88d7549902817fe000000/embeddedlist/0/``. You
+can also manipulate subresources in the same manner as resources themselves.
+
+Polymorphism
+============
+
+MongoEngine supports document inheritance and you can normally add such
+inherited documents to your RESTful API. But sometimes it is useful to have
+only one API endpoint for family of documents so that they are all listed
+together but that you can still create different variations of the document. To
+enable this, you have to define mapping between types and resources. For
+example, if documents are defined as::
+
+    class Person(mongoengine.Document):
+        meta = {
+            'allow_inheritance': True,
+        }
+
+        name = mongoengine.StringField(max_length=200, required=True)
+        optional = mongoengine.StringField(max_length=200, required=False)
+
+    class StrangePerson(Person):
+        strange = mongoengine.StringField(max_length=100, required=True)
+
+You might define your resources as::
+
+    class StrangePersonResource(resources.MongoEngineResource):
         class Meta:
-            object_class = documents.EmbeddedPerson
-            ...
-            
-    class EmbeddedSortedListFieldTestResource(resources.MongoEngineResource):
-        embeddedlist = fields.EmbeddedSortedListField(of='test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
-        ...
+            queryset = documents.StrangePerson.objects.all()
+
+    class PersonResource(resources.MongoEngineResource):
+        class Meta:
+            queryset = documents.Person.objects.all()
+            allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+            authorization = authorization.Authorization()
+
+            polymorphic = {
+                'person': 'self',
+                'strangeperson': StrangePersonResource,
+            }
+
+Use ``self`` keyword to refer back to the current (main) resource.
+Authorization and other similar parameters are still taken from the main
+resource.
+
+Then, when you want to use some other type than default, you should pass it as
+an additional parameter ``type`` to ``Content-Type`` in your payload request::
+
+    Content-Type: application/json; type=strangeperson
+
+Alternatively, you can pass a query string parameter.
+
+All this works also for embedded documents in list.
