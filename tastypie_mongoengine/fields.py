@@ -110,7 +110,24 @@ class EmbeddedListField(fields.ToManyField):
     def __init__(self, of, attribute, **kwargs):
         self._to_class_with_listresource = None
 
+        help_text = kwargs.pop('help_text', None)
+
         super(EmbeddedListField, self).__init__(to=of, attribute=attribute, **kwargs)
+
+        self._help_text = help_text
+
+    @property
+    def help_text(self):
+        if not self._help_text:
+            self._help_text = "List of embedded documents (%s)." % (self.to_class()._meta.resource_name,)
+        return self._help_text
+
+    def build_schema(self):
+        return {
+            'embedded': {
+                'fields': self.to_class().build_schema()['fields'],
+            },
+        }
 
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:

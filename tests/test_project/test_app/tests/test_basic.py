@@ -381,9 +381,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(len(response['fields']), 3)
         self.assertEqual(response['fields']['person']['reference_uri'], self.resourceListURI('person'))
 
-        customer_schema_uri = self.resourceListURI('listfieldtest') + 'schema/'
+        listfieldtest_schema_uri = self.resourceListURI('listfieldtest') + 'schema/'
 
-        response = self.c.get(customer_schema_uri)
+        response = self.c.get(listfieldtest_schema_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
@@ -391,6 +391,18 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['fields']['intlist']['content']['type'], 'int')
         self.assertEqual(response['fields']['stringlist']['content']['type'], 'string')
         self.assertTrue('content' not in response['fields']['anytype'])
+
+        embeddedlistfieldtest_schema_uri = self.resourceListURI('embeddedlistfieldtest') + 'schema/'
+
+        response = self.c.get(embeddedlistfieldtest_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 3)
+        self.assertEqual(len(response['fields']['embeddedlist']['embedded']['fields']), 3)
+        self.assertTrue('name' in response['fields']['embeddedlist']['embedded']['fields'])
+        self.assertTrue('optional' in response['fields']['embeddedlist']['embedded']['fields'])
+        self.assertTrue('resource_uri' in response['fields']['embeddedlist']['embedded']['fields'])
 
     def test_invalid(self):
         # Invalid ObjectId
