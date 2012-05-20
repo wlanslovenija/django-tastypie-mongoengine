@@ -10,6 +10,8 @@ from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exception
 import mongoengine
 from mongoengine import queryset
 
+import bson
+
 from tastypie_mongoengine import fields
 
 CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
@@ -338,7 +340,17 @@ class MongoEngineResource(resources.ModelResource):
         # Django exception so that it is handled properly
         # is_valid method is too early as bundle.obj is not yet ready then
         try:
-            bundle.obj.validate()
+            # Validation fails for unsaved related resources, so
+            # we fake pk here temporary, for validation code to
+            # assume resource is saved
+            pk = getattr(bundle.obj, 'pk', None)
+            try:
+                if pk is None:
+                    bundle.obj.pk = bson.ObjectId()
+                bundle.obj.validate()
+            finally:
+                if pk is None:
+                    bundle.obj.pk = pk
         except mongoengine.ValidationError, e:
             raise exceptions.ValidationError(e.message)
 

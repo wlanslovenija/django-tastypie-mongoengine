@@ -84,12 +84,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 3", "additional": "Additional"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        # Referenced resources are not created automatically
-        response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person DOES NOT EXIST"}}', content_type='application/json')
-        self.assertContains(response, 'You can only reference documents once they have been saved to the database', status_code=400)
-        self.assertEqual(response.status_code, 400)
-
-        # But they can be matched if matched uniquely
+        # Referenced resources can be matched through fields if they match uniquely
         response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
@@ -103,7 +98,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['optional'], None)
         self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
 
-        response = self.c.post(self.resourceListURI('customer'), '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        person1_id = response['person']['id']
+
+        # Referenced resources can be even updated at the same time
+        response = self.c.post(self.resourceListURI('customer'), '{"person": {"id": "%s", "name": "Person 1 UPDATED"}}' % person1_id, content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         customer2_uri = response['location']
@@ -112,9 +110,56 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['person']['name'], 'Person 1')
+        self.assertEqual(response['person']['name'], 'Person 1 UPDATED')
         self.assertEqual(response['person']['optional'], None)
         self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
+
+        response = self.c.post(self.resourceListURI('customer'), '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        customer3_uri = response['location']
+
+        response = self.c.get(customer3_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person 1 UPDATED')
+        self.assertEqual(response['person']['optional'], None)
+        self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
+
+        response = self.c.get(self.resourceListURI('person'))
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['objects']), 4)
+
+        # Referenced resources can also be created automatically
+        response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person does not YET exist"}}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        customer4_uri = response['location']
+
+        response = self.c.get(customer4_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person does not YET exist')
+        self.assertEqual(response['person']['optional'], None)
+
+        person5_uri = response['person']['resource_uri']
+
+        response = self.c.get(person5_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person does not YET exist')
+        self.assertEqual(response['optional'], None)
+
+        response = self.c.get(self.resourceListURI('person'))
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['objects']), 5)
 
         response = self.c.post(self.resourceListURI('embeddeddocumentfieldtest'), '{"customer": {"name": "Embedded person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)

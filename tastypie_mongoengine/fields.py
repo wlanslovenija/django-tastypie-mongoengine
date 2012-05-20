@@ -18,7 +18,7 @@ class ObjectId(fields.ApiField):
 
         super(ObjectId, self).__init__(*args, **kwargs)
 
-class ReferenceField(fields.ForeignKey):
+class ReferenceField(fields.ToOneField):
     """
     References another MongoEngine document.
     """
