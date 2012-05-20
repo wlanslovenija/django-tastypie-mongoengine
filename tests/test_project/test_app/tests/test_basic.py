@@ -2,7 +2,7 @@ import urlparse
 
 from django.core import urlresolvers
 from django.test import client, utils
-from django.utils import simplejson as json, unittest
+from django.utils import simplejson as json
 
 from test_project import test_runner
 from test_project.test_app import documents
