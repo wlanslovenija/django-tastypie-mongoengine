@@ -84,17 +84,37 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 3", "additional": "Additional"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        response = self.c.post(self.resourceListURI('customer'), '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        # Referenced resources are not created automatically
+        response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person DOES NOT EXIST"}}', content_type='application/json')
+        self.assertContains(response, 'You can only reference documents once they have been saved to the database', status_code=400)
+        self.assertEqual(response.status_code, 400)
+
+        # But they can be matched if matched uniquely
+        response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        customer_uri = response['location']
+        customer1_uri = response['location']
 
-        response = self.c.get(customer_uri)
+        response = self.c.get(customer1_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
         self.assertEqual(response['person']['name'], 'Person 1')
         self.assertEqual(response['person']['optional'], None)
+        self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
+
+        response = self.c.post(self.resourceListURI('customer'), '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        customer2_uri = response['location']
+
+        response = self.c.get(customer2_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['person']['name'], 'Person 1')
+        self.assertEqual(response['person']['optional'], None)
+        self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
 
         response = self.c.post(self.resourceListURI('embeddeddocumentfieldtest'), '{"customer": {"name": "Embedded person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -192,10 +212,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['name'], 'Person 1z')
 
-        response = self.c.put(customer_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person2_uri), content_type='application/json')
+        response = self.c.put(customer2_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person2_uri), content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
-        response = self.c.get(customer_uri)
+        response = self.c.get(customer2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
@@ -282,10 +302,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['name'], 'Person 1 PATCHED')
         self.assertEqual(response['optional'], 'Optional PATCHED')
 
-        response = self.c.patch(customer_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        response = self.c.patch(customer2_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
         self.assertEqual(response.status_code, 202)
 
-        response = self.c.get(customer_uri)
+        response = self.c.get(customer2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
