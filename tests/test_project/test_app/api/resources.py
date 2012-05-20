@@ -20,7 +20,7 @@ class PersonResource(resources.MongoEngineResource):
         }
 
 class CustomerResource(resources.MongoEngineResource):
-    person = tastypie_fields.ForeignKey(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
+    person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
 
     class Meta:
         queryset = documents.Customer.objects.all()

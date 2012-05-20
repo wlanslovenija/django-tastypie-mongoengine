@@ -1,4 +1,4 @@
-import itertools, re
+import itertools, re, sys
 
 from django.conf.urls.defaults import url
 from django.core import exceptions
@@ -50,6 +50,32 @@ class ListQuerySet(datastructures.SortedDict):
             return itertools.islice(self, key, key+1).next()
         else:
             return super(ListQuerySet, self).__getitem__(key)
+
+# Adapted from PEP 257
+def trim(docstring):
+    if not docstring:
+        return ''
+    # Convert tabs to spaces (following the normal Python rules)
+    # and split into a list of lines:
+    lines = docstring.expandtabs().splitlines()
+    # Determine minimum indentation (first line doesn't count):
+    indent = sys.maxint
+    for line in lines[1:]:
+        stripped = line.lstrip()
+        if stripped:
+            indent = min(indent, len(line) - len(stripped))
+    # Remove indentation (first line is special):
+    trimmed = [lines[0].strip()]
+    if indent < sys.maxint:
+        for line in lines[1:]:
+            trimmed.append(line[indent:].rstrip())
+    # Strip off trailing and leading blank lines:
+    while trimmed and not trimmed[-1]:
+        trimmed.pop()
+    while trimmed and not trimmed[0]:
+        trimmed.pop(0)
+    # Return the first paragraph as a single string:
+    return '\n'.join(trimmed).split('\n\n')[0]
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -322,8 +348,20 @@ class MongoEngineResource(resources.ModelResource):
         data = super(MongoEngineResource, self).build_schema()
 
         for field_name, field_object in self.fields.items():
-            if isinstance(field_object, tastypie_fields.ForeignKey):
-                data['fields'][field_name]['related_uri'] = field_object.to_class().get_resource_list_uri()
+            # We process ListField specially here (and not use field's
+            # build_schema) so that Tastypie's ListField can be used
+            if isinstance(field_object, tastypie_fields.ListField):
+                if field_object.field:
+                    data['fields'][field_name]['content'] = {}
+
+                    field_type = field_object.field.__class__.__name__.lower()
+                    if field_type.endswith('field'):
+                        field_type = field_type[:-5]
+                    data['fields'][field_name]['content']['type'] = field_type
+
+                    if field_object.field.__doc__:
+                        data['fields'][field_name]['content']['help_text'] = trim(field_object.field.__doc__)
+
             if hasattr(field_object, 'build_schema'):
                 data['fields'][field_name].update(field_object.build_schema())
 
@@ -462,6 +500,11 @@ class MongoEngineResource(resources.ModelResource):
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
+
+            # We store MongoEngine field so that schema output can show
+            # to which content the list is limited to (if any)
+            if isinstance(f, mongoengine.ListField):
+                final_fields[name].field = f.field
 
         return final_fields
 

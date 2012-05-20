@@ -308,8 +308,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertFalse('number' in response['dictionary'])
         self.assertEqual(response['dictionary']['a'], 42)
+        self.assertTrue('number' not in response['dictionary'])
 
         response = self.c.patch(listfieldtest_uri, '{"intlist": [1, 2, 42]}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
@@ -348,8 +348,6 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['fields']), 3)
-        self.assertTrue('customer' in response['fields'])
-        self.assertTrue('embedded_fields' in response['fields']['customer'])
         self.assertEqual(len(response['fields']['customer']['embedded_fields']), 2)
         self.assertTrue('name' in response['fields']['customer']['embedded_fields'])
         self.assertTrue('optional' in response['fields']['customer']['embedded_fields'])
@@ -361,9 +359,18 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['fields']), 3)
-        self.assertTrue('person' in response['fields'])
-        self.assertTrue('related_uri' in response['fields']['person'])
-        self.assertEqual(response['fields']['person']['related_uri'], self.resourceListURI('person'))
+        self.assertEqual(response['fields']['person']['reference_uri'], self.resourceListURI('person'))
+
+        customer_schema_uri = self.resourceListURI('listfieldtest') + 'schema/'
+
+        response = self.c.get(customer_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 5)
+        self.assertEqual(response['fields']['intlist']['content']['type'], 'int')
+        self.assertEqual(response['fields']['stringlist']['content']['type'], 'string')
+        self.assertTrue('content' not in response['fields']['anytype'])
 
     def test_embeddedlist(self):
         # Testing POST

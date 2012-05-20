@@ -18,6 +18,31 @@ class ObjectId(fields.ApiField):
 
         super(ObjectId, self).__init__(*args, **kwargs)
 
+class ReferenceField(fields.ForeignKey):
+    """
+    References another MongoEngine document.
+    """
+
+    dehydrated_type = 'reference'
+
+    def __init__(self, *args, **kwargs):
+        help_text = kwargs.pop('help_text', None)
+
+        super(ReferenceField, self).__init__(*args, **kwargs)
+
+        self._help_text = help_text
+
+    @property
+    def help_text(self):
+        if not self._help_text:
+            self._help_text = "Referenced document (%s). Can be either a URI or nested document data." % (self.to_class()._meta.resource_name,)
+        return self._help_text
+
+    def build_schema(self):
+        return {
+            'reference_uri': self.to_class().get_resource_list_uri(),
+        }
+
 class EmbeddedDocumentField(fields.ToOneField):
     """
     Embeds a resource inside another resource just like you would in MongoEngine.
