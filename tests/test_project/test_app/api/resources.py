@@ -48,7 +48,7 @@ class ListFieldTestResource(resources.MongoEngineResource):
         authorization = authorization.Authorization()
 
 class EmbeddedListFieldTestResource(resources.MongoEngineResource):
-    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonListResource', attribute='embeddedlist', full=True)
+    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='embeddedlist', full=True)
 
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
@@ -60,6 +60,3 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
         object_class = documents.EmbeddedPerson
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()
-
-class EmbeddedPersonListResource(EmbeddedPersonResource, resources.MongoEngineListResource):
-    pass

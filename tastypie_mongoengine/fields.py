@@ -108,6 +108,8 @@ class EmbeddedListField(fields.ToManyField):
     is_m2m = False
 
     def __init__(self, of, attribute, **kwargs):
+        self._to_class_with_listresource = None
+
         super(EmbeddedListField, self).__init__(to=of, attribute=attribute, **kwargs)
 
     def dehydrate(self, bundle):
@@ -138,5 +140,11 @@ class EmbeddedListField(fields.ToManyField):
 
     @property
     def to_class(self):
-        base = super(EmbeddedListField, self).to_class
-        return lambda: base(self._resource(), self.instance_name)
+        if not self._to_class_with_listresource:
+            # Importing here to prevent import cycle
+            from tastypie_mongoengine import resources
+            base = super(EmbeddedListField, self).to_class
+            # We create a new ad-hoc resource class here, mixed with MongoEngineListResource, pretending to be original class
+            base_with_listresource = type(base.__name__, (base, resources.MongoEngineListResource), {'__module__': base.__module__})
+            self._to_class_with_listresource = lambda api_name=None: base_with_listresource(self._resource, self.instance_name, api_name)
+        return self._to_class_with_listresource
