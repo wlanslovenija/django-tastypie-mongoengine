@@ -372,6 +372,11 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['fields']['stringlist']['content']['type'], 'string')
         self.assertTrue('content' not in response['fields']['anytype'])
 
+    def test_invalid(self):
+        # Invalid ObjectId
+        response = self.c.get(self.resourceListURI('customer') + 'foobar/')
+        self.assertEqual(response.status_code, 404)
+
     def test_embeddedlist(self):
         # Testing POST
 

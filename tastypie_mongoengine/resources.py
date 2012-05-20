@@ -391,6 +391,9 @@ class MongoEngineResource(resources.ModelResource):
         except queryset.MultipleObjectsReturned, e:
             exp = base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
+        except mongoengine.ValidationError, e:
+            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            raise exp(*e.args)
 
     def obj_update(self, bundle, request=None, **kwargs):
         # MongoEngine exceptions are separate from Django exceptions and Tastypie
