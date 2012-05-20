@@ -368,9 +368,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['fields']), 3)
-        self.assertEqual(len(response['fields']['customer']['embedded_fields']), 2)
-        self.assertTrue('name' in response['fields']['customer']['embedded_fields'])
-        self.assertTrue('optional' in response['fields']['customer']['embedded_fields'])
+        self.assertEqual(len(response['fields']['customer']['embedded']['fields']), 2)
+        self.assertTrue('name' in response['fields']['customer']['embedded']['fields'])
+        self.assertTrue('optional' in response['fields']['customer']['embedded']['fields'])
 
         customer_schema_uri = self.resourceListURI('customer') + 'schema/'
 

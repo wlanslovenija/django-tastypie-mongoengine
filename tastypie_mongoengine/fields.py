@@ -74,7 +74,9 @@ class EmbeddedDocumentField(fields.ToOneField):
 
     def build_schema(self):
         return {
-            'embedded_fields': self.to_class().build_schema()['fields'],
+            'embedded': {
+                'fields': self.to_class().build_schema()['fields'],
+            },
         }
 
     def hydrate(self, bundle):
