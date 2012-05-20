@@ -19,6 +19,21 @@ class PersonResource(resources.MongoEngineResource):
             'strangeperson': StrangePersonResource(),
         }
 
+class EmbeddedStrangePersonResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.EmbeddedStrangePerson
+
+class EmbeddedPersonResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.EmbeddedPerson
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = authorization.Authorization()
+
+        polymorphic = {
+            'person': 'self',
+            'strangeperson': EmbeddedStrangePersonResource(),
+        }
+
 class CustomerResource(resources.MongoEngineResource):
     person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
 
@@ -52,11 +67,5 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
-        authorization = authorization.Authorization()
-
-class EmbeddedPersonResource(resources.MongoEngineResource):
-    class Meta:
-        object_class = documents.EmbeddedPerson
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = authorization.Authorization()

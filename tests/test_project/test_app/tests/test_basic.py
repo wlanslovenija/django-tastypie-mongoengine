@@ -416,9 +416,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['fields']), 3)
-        self.assertEqual(len(response['fields']['customer']['embedded']['fields']), 2)
+        self.assertEqual(len(response['fields']['customer']['embedded']['fields']), 3)
         self.assertTrue('name' in response['fields']['customer']['embedded']['fields'])
         self.assertTrue('optional' in response['fields']['customer']['embedded']['fields'])
+        self.assertTrue('resource_type' in response['fields']['customer']['embedded']['fields'])
 
         customer_schema_uri = self.resourceListURI('customer') + 'schema/'
 
@@ -447,10 +448,15 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(len(response['fields']), 3)
-        self.assertEqual(len(response['fields']['embeddedlist']['embedded']['fields']), 3)
+        self.assertEqual(len(response['fields']['embeddedlist']['embedded']['fields']), 4)
         self.assertTrue('name' in response['fields']['embeddedlist']['embedded']['fields'])
         self.assertTrue('optional' in response['fields']['embeddedlist']['embedded']['fields'])
         self.assertTrue('resource_uri' in response['fields']['embeddedlist']['embedded']['fields'])
+        self.assertTrue('resource_type' in response['fields']['embeddedlist']['embedded']['fields'])
+
+        self.assertEqual(len(response['fields']['embeddedlist']['embedded']['resource_types']), 2)
+        self.assertTrue('person' in response['fields']['embeddedlist']['embedded']['resource_types'])
+        self.assertTrue('strangeperson' in response['fields']['embeddedlist']['embedded']['resource_types'])
 
     def test_invalid(self):
         # Invalid ObjectId
@@ -785,5 +791,46 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['name'], 'Person 2c')
         self.assertEqual(response['resource_type'], 'person')
 
+        # TODO: Test PATCH
+        # TODO: Test DELETE
+
+    def test_embeddedlist_polymorphic(self):
+        # Testing POST
+
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource_uri = response['location']
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person 1')
+        self.assertEqual(response['embeddedlist'][0]['optional'], None)
+        self.assertEqual(response['embeddedlist'][0]['resource_type'], 'person')
+        self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2')
+        self.assertEqual(response['embeddedlist'][1]['optional'], 'Optional')
+        self.assertEqual(response['embeddedlist'][0]['resource_type'], 'person')
+        self.assertEqual(len(response['embeddedlist']), 2)
+
+        embeddedresource_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/'
+        embedded3_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/2/'
+
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3"}', content_type='application/json; type=strangeperson')
+        self.assertContains(response, 'field has no data', status_code=400)
+
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3", "strange": "Strange"}', content_type='application/json; type=strangeperson')
+        self.assertRedirects(response, embedded3_uri, status_code=201)
+
+        response = self.c.get(embedded3_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Embedded person 3')
+        self.assertEqual(response['strange'], 'Strange')
+        self.assertEqual(response['resource_type'], 'strangeperson')
+
+        # TODO: Test PUT
         # TODO: Test PATCH
         # TODO: Test DELETE

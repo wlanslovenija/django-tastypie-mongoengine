@@ -118,11 +118,21 @@ class EmbeddedListField(fields.ToManyField):
         return self._help_text
 
     def build_schema(self):
-        return {
+        data = {
             'embedded': {
                 'fields': self.to_class().build_schema()['fields'],
             },
         }
+
+        type_map = getattr(self.to_class()._meta, 'polymorphic', {})
+        if not type_map:
+            return data
+
+        data['embedded'].update({
+            'resource_types': type_map.keys(),
+        })
+
+        return data
 
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
