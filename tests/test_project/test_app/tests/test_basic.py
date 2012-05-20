@@ -226,6 +226,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2')
         self.assertEqual(len(response['embeddedlist']), 2)
 
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": ["%s"]}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        self.assertContains(response, 'was not given a dictionary-alike data', status_code=400)
+
         # Testing PUT
 
         response = self.c.put(person1_uri, '{"name": "Person 1z"}', content_type='application/json')

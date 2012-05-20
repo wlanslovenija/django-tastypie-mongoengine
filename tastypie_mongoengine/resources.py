@@ -289,7 +289,7 @@ class MongoEngineResource(resources.ModelResource):
         # should be completely replaced if type is changed, so we throw and exception here
         # to direct program logic flow (it is catched and replace instead of update is tried)
         if bundle.obj and self._meta.object_class is not bundle.obj.__class__:
-            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+            raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
         bundle = super(MongoEngineResource, self).full_hydrate(bundle)
 
@@ -408,12 +408,21 @@ class MongoEngineResource(resources.ModelResource):
             raise exp(*e.args)
 
     def obj_update(self, bundle, request=None, **kwargs):
-        # MongoEngine exceptions are separate from Django exceptions and Tastypie
-        # expects Django exceptions, so we catch it here ourselves and raise NotFound
-        try:
-            return super(MongoEngineResource, self).obj_update(bundle, request, **kwargs)
-        except queryset.DoesNotExist:
-            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+            try:
+                bundle.obj = self.obj_get(request, **kwargs)
+            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+
+        bundle = self.full_hydrate(bundle)
+
+        self.save_related(bundle)
+
+        bundle.obj.save()
+
+        m2m_bundle = self.hydrate_m2m(bundle)
+        self.save_m2m(m2m_bundle)
+        return bundle
 
     def obj_delete(self, request=None, **kwargs):
         # MongoEngine exceptions are separate from Django exceptions and Tastypie
@@ -421,7 +430,7 @@ class MongoEngineResource(resources.ModelResource):
         try:
             return super(MongoEngineResource, self).obj_delete(request, **kwargs)
         except queryset.DoesNotExist:
-            raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+            raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
@@ -460,7 +469,7 @@ class MongoEngineResource(resources.ModelResource):
     def get_fields(self, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
-        additional fields based on the associated model.
+        additional fields based on the associated document.
         """
 
         final_fields = {}
@@ -612,7 +621,7 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 bundle.obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise tastypie_exceptions.NotFound("A model instance matching the provided arguments could not be found.")
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
         bundle = self.full_hydrate(bundle)
 
@@ -634,7 +643,7 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise NotFound("A model instance matching the provided arguments could not be found.")
+                raise NotFound("A document instance matching the provided arguments could not be found.")
 
         getattr(self.instance, self.attribute).pop(int(obj.pk))
         self.instance.save()

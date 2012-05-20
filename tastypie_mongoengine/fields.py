@@ -83,20 +83,15 @@ class EmbeddedDocumentField(fields.ToOneField):
         return super(EmbeddedDocumentField, self).hydrate(bundle).obj
 
     def build_related_resource(self, value, **kwargs):
-        """
-        Used to ``hydrate`` the data provided. If just a URL is provided,
-        the related resource is attempted to be loaded. If a
-        dictionary-like structure is provided, a fresh resource is
-        created.
-        """
+        # A version of build_related_resource which allows only dictionary-alike data
+        if not hasattr(value, 'items'):
+            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
 
         self.fk_resource = self.to_class()
-
-        # Try to hydrate the data provided.
-        value = utils.dict_strip_unicode_keys(value)
-        self.fk_bundle = tastypie_bundle.Bundle(data=value)
-
-        return self.fk_resource.full_hydrate(self.fk_bundle)
+        # We force resource to cannot be updated so that
+        # it is just constructed by resource_from_data
+        self.fk_resource.can_update = lambda: False
+        return self.resource_from_data(self.fk_resource, value, **kwargs)
 
 class EmbeddedListField(fields.ToManyField):
     """
@@ -134,7 +129,15 @@ class EmbeddedListField(fields.ToManyField):
             if not self.null:
                 raise fields.ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
-        if not getattr(bundle.obj, self.attribute):
+
+        the_m2ms = None
+
+        if isinstance(self.attribute, basestring):
+            the_m2ms = getattr(bundle.obj, self.attribute)
+        elif callable(self.attribute):
+            the_m2ms = self.attribute(bundle)
+
+        if not the_m2ms:
             if not self.null:
                 raise fields.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
             return []
@@ -142,11 +145,11 @@ class EmbeddedListField(fields.ToManyField):
         self.m2m_resources = []
         m2m_dehydrated = []
 
-        for index, m2m in enumerate(getattr(bundle.obj, self.attribute)):
+        for index, m2m in enumerate(the_m2ms):
             m2m.pk = index
             m2m.parent = bundle.obj
             m2m_resource = self.get_related_resource(m2m)
-            m2m_bundle = tastypie_bundle.Bundle(obj=m2m)
+            m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
 
@@ -154,6 +157,17 @@ class EmbeddedListField(fields.ToManyField):
 
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
+
+    def build_related_resource(self, value, **kwargs):
+        # A version of build_related_resource which allows only dictionary-alike data
+        if not hasattr(value, 'items'):
+            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
+
+        self.fk_resource = self.to_class()
+        # We force resource to cannot be updated so that
+        # it is just constructed by resource_from_data
+        self.fk_resource.can_update = lambda: False
+        return self.resource_from_data(self.fk_resource, value, **kwargs)
 
     @property
     def to_class(self):
