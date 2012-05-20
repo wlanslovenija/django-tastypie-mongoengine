@@ -82,7 +82,7 @@ def trim(docstring):
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
     This class has the same functionality as its supper ``ModelDeclarativeMetaclass``.
-    Only thing it does diffrently is how it sets ``object_class`` and ``queryset`` attributes.
+    Only thing it does differently is how it sets ``object_class`` and ``queryset`` attributes.
 
     This is an internal class and is not used by the end user of tastypie_mongoengine.
     """
@@ -148,7 +148,7 @@ class MongoEngineResource(resources.ModelResource):
 
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         field = self.fields[subresource_name]
-        resource = field.to_class()
+        resource = field.to_class(self._meta.api_name)
         return resource.dispatch(request=request, **kwargs)
 
     def base_urls(self):
@@ -222,7 +222,7 @@ class MongoEngineResource(resources.ModelResource):
         if object_type not in type_map:
             raise tastypie_exceptions.BadRequest("Invalid object type.")
 
-        resource = type_map[object_type]
+        resource = type_map[object_type](self._meta.api_name)
 
         # Optimization
         if resource._meta.object_class is self._meta.object_class:
@@ -281,13 +281,13 @@ class MongoEngineResource(resources.ModelResource):
         if self._meta.object_class is bundle.obj.__class__:
             return super(MongoEngineResource, self).full_dehydrate(bundle)
 
-        resource = self._get_resource_from_class(type_map, bundle.obj.__class__)
+        resource = self._get_resource_from_class(type_map, bundle.obj.__class__)(self._meta.api_name)
         return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle))
 
     def full_hydrate(self, bundle):
         # When updating objects, we want to force only updates of the same type, and object
         # should be completely replaced if type is changed, so we throw and exception here
-        # to direct program logic flow (it is catched and replace instead of update is tried)
+        # to direct program logic flow (it is cached and replace instead of update is tried)
         if bundle.obj and self._meta.object_class is not bundle.obj.__class__:
             raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
@@ -441,7 +441,6 @@ class MongoEngineResource(resources.ModelResource):
 
         result = default
 
-        # TODO: This should probably be changed to a series of isinstance calls
         if isinstance(f, (mongoengine.ComplexDateTimeField, mongoengine.DateTimeField)):
             result = tastypie_fields.DateTimeField
         elif isinstance(f, mongoengine.BooleanField):
@@ -534,7 +533,7 @@ class MongoEngineResource(resources.ModelResource):
 
 class MongoEngineListResource(MongoEngineResource):
     """
-    A MongoEngine resourse used in conjunction with EmbeddedListField.
+    A MongoEngine resource used in conjunction with EmbeddedListField.
     """
 
     def __init__(self, parent, attribute, api_name=None):
@@ -665,9 +664,7 @@ class MongoEngineListResource(MongoEngineResource):
         else:
             kwargs['pk'] = self.instance.pk
 
-        api_name = self._meta.api_name or self.parent._meta.api_name
-
-        if api_name:
-            kwargs['api_name'] = api_name
+        if self._meta.api_name is not None:
+            kwargs['api_name'] = self._meta.api_name
 
         return self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)

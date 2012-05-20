@@ -18,7 +18,27 @@ class ObjectId(fields.ApiField):
 
         super(ObjectId, self).__init__(*args, **kwargs)
 
-class ReferenceField(fields.ToOneField):
+class ApiNameMixin(object):
+    def get_api_name(self):
+        if getattr(self, 'api_name', None) is not None:
+            return self.api_name
+        if getattr(self, '_resource', None) and self._resource._meta.api_name is not None:
+            return self._resource._meta.api_name
+        return None
+
+class BuildRelatedMixin(ApiNameMixin):
+    def build_related_resource(self, value, **kwargs):
+        # A version of build_related_resource which allows only dictionary-alike data
+        if not hasattr(value, 'items'):
+            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
+
+        self.fk_resource = self.to_class(self.get_api_name())
+        # We force resource to cannot be updated so that
+        # it is just constructed by resource_from_data
+        self.fk_resource.can_update = lambda: False
+        return self.resource_from_data(self.fk_resource, value, **kwargs)
+
+class ReferenceField(ApiNameMixin, fields.ToOneField):
     """
     References another MongoEngine document.
     """
@@ -35,15 +55,15 @@ class ReferenceField(fields.ToOneField):
     @property
     def help_text(self):
         if not self._help_text:
-            self._help_text = "Referenced document (%s). Can be either a URI or nested document data." % (self.to_class()._meta.resource_name,)
+            self._help_text = "Referenced document (%s). Can be either a URI or nested document data." % (self.to_class(self.get_api_name())._meta.resource_name,)
         return self._help_text
 
     def build_schema(self):
         return {
-            'reference_uri': self.to_class().get_resource_list_uri(),
+            'reference_uri': self.to_class(self.get_api_name()).get_resource_list_uri(),
         }
 
-class EmbeddedDocumentField(fields.ToOneField):
+class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
     """
     Embeds a resource inside another resource just like you would in MongoEngine.
     """
@@ -69,31 +89,20 @@ class EmbeddedDocumentField(fields.ToOneField):
     @property
     def help_text(self):
         if not self._help_text:
-            self._help_text = "Embedded document (%s)." % (self.to_class()._meta.resource_name,)
+            self._help_text = "Embedded document (%s)." % (self.to_class(self.get_api_name())._meta.resource_name,)
         return self._help_text
 
     def build_schema(self):
         return {
             'embedded': {
-                'fields': self.to_class().build_schema()['fields'],
+                'fields': self.to_class(self.get_api_name()).build_schema()['fields'],
             },
         }
 
     def hydrate(self, bundle):
         return super(EmbeddedDocumentField, self).hydrate(bundle).obj
 
-    def build_related_resource(self, value, **kwargs):
-        # A version of build_related_resource which allows only dictionary-alike data
-        if not hasattr(value, 'items'):
-            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
-
-        self.fk_resource = self.to_class()
-        # We force resource to cannot be updated so that
-        # it is just constructed by resource_from_data
-        self.fk_resource.can_update = lambda: False
-        return self.resource_from_data(self.fk_resource, value, **kwargs)
-
-class EmbeddedListField(fields.ToManyField):
+class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     """
     Represents a list of embedded objects. It must be used in conjunction
     with EmbeddedDocumentField.
@@ -114,17 +123,17 @@ class EmbeddedListField(fields.ToManyField):
     @property
     def help_text(self):
         if not self._help_text:
-            self._help_text = "List of embedded documents (%s)." % (self.to_class()._meta.resource_name,)
+            self._help_text = "List of embedded documents (%s)." % (self.to_class(self.get_api_name())._meta.resource_name,)
         return self._help_text
 
     def build_schema(self):
         data = {
             'embedded': {
-                'fields': self.to_class().build_schema()['fields'],
+                'fields': self.to_class(self.get_api_name()).build_schema()['fields'],
             },
         }
 
-        type_map = getattr(self.to_class()._meta, 'polymorphic', {})
+        type_map = getattr(self.to_class(self.get_api_name())._meta, 'polymorphic', {})
         if not type_map:
             return data
 
@@ -167,17 +176,6 @@ class EmbeddedListField(fields.ToManyField):
 
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
-
-    def build_related_resource(self, value, **kwargs):
-        # A version of build_related_resource which allows only dictionary-alike data
-        if not hasattr(value, 'items'):
-            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
-
-        self.fk_resource = self.to_class()
-        # We force resource to cannot be updated so that
-        # it is just constructed by resource_from_data
-        self.fk_resource.can_update = lambda: False
-        return self.resource_from_data(self.fk_resource, value, **kwargs)
 
     @property
     def to_class(self):

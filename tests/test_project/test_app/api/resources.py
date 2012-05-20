@@ -16,7 +16,7 @@ class PersonResource(resources.MongoEngineResource):
 
         polymorphic = {
             'person': 'self',
-            'strangeperson': StrangePersonResource(),
+            'strangeperson': StrangePersonResource,
         }
 
 class EmbeddedStrangePersonResource(resources.MongoEngineResource):
@@ -31,7 +31,7 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
 
         polymorphic = {
             'person': 'self',
-            'strangeperson': EmbeddedStrangePersonResource(),
+            'strangeperson': EmbeddedStrangePersonResource,
         }
 
 class CustomerResource(resources.MongoEngineResource):
