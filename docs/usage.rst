@@ -2,7 +2,7 @@
 Usage
 =====
 
-Usage for simple cases is very similar as with django-tastypie. You should read
+Usage for simple cases is very similar as with Tastypie. You should read
 their tutorial_ first.
 
 .. _tutorial: http://django-tastypie.readthedocs.org/en/latest/tutorial.html
@@ -41,8 +41,16 @@ When you are using normal MongoEngine ``Document`` you can use ``queryset`` or `
 Related and Embedded Fields
 ===========================
 
-Most document fields are automatically mapped to corresponding django-tastypie
-fields but some are not.
+Most document fields are automatically mapped to corresponding Tastypie fields
+but some are not. Of course, you can also manually define those automatically
+mapped fields if, for example, you want to define some read-only.
+
+.. warning::
+
+    When manually defining document fields be careful to properly map
+    MongoEngine attributes to Tastypie attributes. For example, ``required``
+    and ``null`` attributes are inversed in meaning, but both are by default
+    ``False``.
 
 ReferenceField
 --------------
