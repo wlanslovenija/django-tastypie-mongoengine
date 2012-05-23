@@ -834,3 +834,13 @@ class BasicTest(test_runner.MongoEngineTestCase):
         # TODO: Test PUT
         # TODO: Test PATCH
         # TODO: Test DELETE
+
+    def test_limited_polymorphic(self):
+        response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1", "strange": "Strange"}', content_type='application/json; type=strangeperson')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1"}', content_type='application/json; type=person')
+        self.assertContains(response, 'Invalid object type', status_code=400)
+
+        response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1"}', content_type='application/json')
+        self.assertContains(response, 'Invalid object type', status_code=400)

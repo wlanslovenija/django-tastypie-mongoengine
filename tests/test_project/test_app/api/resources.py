@@ -19,6 +19,16 @@ class PersonResource(resources.MongoEngineResource):
             'strangeperson': StrangePersonResource,
         }
 
+class OnlySubtypePersonResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Person.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = authorization.Authorization()
+
+        polymorphic = {
+            'strangeperson': StrangePersonResource,
+        }
+
 class EmbeddedStrangePersonResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.EmbeddedStrangePerson

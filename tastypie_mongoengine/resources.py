@@ -217,7 +217,12 @@ class MongoEngineResource(resources.ModelResource):
 
         object_type = self._get_object_type(request)
         if not object_type:
-            return fun()
+            # Polymorphic resources are enabled, but
+            # nothing is passed, so set it to a default
+            try:
+                object_type = self._get_type_from_class(type_map, self._meta.object_class)
+            except KeyError:
+                raise tastypie_exceptions.BadRequest("Invalid object type.")
 
         if object_type not in type_map:
             raise tastypie_exceptions.BadRequest("Invalid object type.")
