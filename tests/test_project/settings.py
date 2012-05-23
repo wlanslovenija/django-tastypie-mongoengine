@@ -2,6 +2,8 @@
 
 DEBUG = True
 
+# We are not really using a relational database, but tests fail without
+# defining it because flush command is being run, which expects it
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
