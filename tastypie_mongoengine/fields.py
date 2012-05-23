@@ -1,4 +1,4 @@
-from tastypie import bundle as tastypie_bundle, fields, utils
+from tastypie import bundle as tastypie_bundle, fields
 
 class ObjectId(fields.ApiField):
     """

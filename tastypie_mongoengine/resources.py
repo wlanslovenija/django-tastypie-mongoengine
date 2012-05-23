@@ -1,6 +1,6 @@
 import itertools, re, sys
 
-from django.conf.urls.defaults import url
+from django.conf import urls
 from django.core import exceptions
 from django.db.models import base
 from django.utils import datastructures
@@ -159,12 +159,12 @@ class MongoEngineResource(resources.ModelResource):
 
         for name, obj in embedded:
             embedded_urls.extend((
-                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-                url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
