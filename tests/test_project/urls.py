@@ -1,4 +1,4 @@
-from django.conf.urls.defaults import patterns, include, url
+from django.conf.urls import patterns, include, url
 
 from tastypie import api
 
@@ -14,5 +14,5 @@ v1_api.register(resources.ListFieldTestResource())
 v1_api.register(resources.EmbeddedListFieldTestResource())
 
 urlpatterns = patterns('',
-    (r'^api/', include(v1_api.urls)),
+    url(r'^api/', include(v1_api.urls)),
 )

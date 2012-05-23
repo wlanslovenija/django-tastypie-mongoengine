@@ -132,10 +132,19 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         elif 'resource_type' in new_class.base_fields and not 'resource_type' in attrs:
             del(new_class.base_fields['resource_type'])
 
+        seen_types = set()
         for typ, resource in type_map.iteritems():
             if resource == 'self':
                 type_map[typ] = new_class
                 break
+            # In the code for polymorphic resources we are assuming
+            # that document classes are not duplicated among used resources
+            # (that each resource is linked to its own document class)
+            # So we are checking this assumption here
+            if type_map[typ]._meta.object_class in seen_types:
+                raise exceptions.ImproperlyConfigured("Used polymorphic resources should each use its own document class.")
+            else:
+                seen_types.add(type_map[typ]._meta.object_class)
 
         return new_class
 

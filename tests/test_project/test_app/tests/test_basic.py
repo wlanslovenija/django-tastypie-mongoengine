@@ -1,11 +1,18 @@
+from __future__ import with_statement
+
 import urlparse
 
-from django.core import urlresolvers
+from django.core import exceptions, urlresolvers
 from django.test import client, utils
 from django.utils import simplejson as json
 
+from tastypie import authorization as tastypie_authorization
+
+from tastypie_mongoengine import resources as tastypie_mongoengine_resources
+
 from test_project import test_runner
 from test_project.test_app import documents
+from test_project.test_app.api import resources
 
 # TODO: Test set operations
 # TODO: Test bulk operations
@@ -844,3 +851,16 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1"}', content_type='application/json')
         self.assertContains(response, 'Invalid object type', status_code=400)
+
+    def test_polymorphic_duplicate_class(self):
+        with self.assertRaises(exceptions.ImproperlyConfigured):
+            class DuplicateSubtypePersonResource(tastypie_mongoengine_resources.MongoEngineResource):
+                class Meta:
+                    queryset = documents.Person.objects.all()
+                    allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+                    authorization = tastypie_authorization.Authorization()
+
+                    polymorphic = {
+                        'strangeperson': resources.StrangePersonResource,
+                        'otherstrangeperson': resources.OtherStrangePersonResource,
+                    }
