@@ -1,4 +1,4 @@
-from tastypie import authorization as tastypie_authorization
+from tastypie import authorization as tastypie_authorization, fields as tastypie_fields
 
 from tastypie_mongoengine import resources, fields
 
@@ -81,5 +81,13 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.EmbeddedListFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class BooleanMapTestResource(resources.MongoEngineResource):
+    is_published_defined = tastypie_fields.BooleanField(default=False, null=False)
+
+    class Meta:
+        queryset = documents.BooleanMapTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()

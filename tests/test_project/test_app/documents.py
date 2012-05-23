@@ -34,3 +34,7 @@ class ListFieldTest(mongoengine.Document):
 
 class EmbeddedListFieldTest(mongoengine.Document):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
+
+class BooleanMapTest(mongoengine.Document):
+    is_published_auto = mongoengine.BooleanField(default=False, required=True)
+    is_published_defined = mongoengine.BooleanField(default=False, required=True)
