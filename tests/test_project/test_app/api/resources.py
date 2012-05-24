@@ -91,3 +91,11 @@ class BooleanMapTestResource(resources.MongoEngineResource):
         queryset = documents.BooleanMapTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+
+class EmbeddedListWithFlagFieldTestResource(resources.MongoEngineResource):
+    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='embeddedlist', full=True, null=True)
+
+    class Meta:
+        queryset = documents.EmbeddedListWithFlagFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()

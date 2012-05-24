@@ -897,3 +897,28 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_auto": true, "is_published_defined": false}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
+
+    def test_embeddedlist_with_flag(self):
+        response = self.c.post(self.resourceListURI('embeddedlistwithflagfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource_uri = response['location']
+        embeddedresource_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/'
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['is_published'], False)
+
+        response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 1", "strange": "Strange"}', content_type='application/json; type=strangeperson')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.client.patch(mainresource_uri, '{"is_published": true}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['is_published'], True)
