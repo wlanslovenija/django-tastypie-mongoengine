@@ -914,8 +914,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 1", "strange": "Strange"}', content_type='application/json; type=strangeperson')
         self.assertEqual(response.status_code, 201)
 
-        response = self.client.patch(mainresource_uri, '{"is_published": true}', content_type='application/json')
-        self.assertEqual(response.status_code, 204)
+        response = self.c.patch(mainresource_uri, '{"is_published": true}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
 
         response = self.c.get(mainresource_uri)
         self.assertEqual(response.status_code, 200)

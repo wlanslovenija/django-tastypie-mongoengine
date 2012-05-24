@@ -29,14 +29,17 @@ class ApiNameMixin(object):
 class BuildRelatedMixin(ApiNameMixin):
     def build_related_resource(self, value, **kwargs):
         # A version of build_related_resource which allows only dictionary-alike data
-        if not hasattr(value, 'items'):
+        if hasattr(value, 'items'):
+            self.fk_resource = self.to_class(self.get_api_name())
+            # We force resource to cannot be updated so that
+            # it is just constructed by resource_from_data
+            self.fk_resource.can_update = lambda: False
+            return self.resource_from_data(self.fk_resource, value, **kwargs)
+        # Or if related object already exists (this happens with PATCH request)
+        elif getattr(value, 'obj', None):
+            return value
+        else:
             raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
-
-        self.fk_resource = self.to_class(self.get_api_name())
-        # We force resource to cannot be updated so that
-        # it is just constructed by resource_from_data
-        self.fk_resource.can_update = lambda: False
-        return self.resource_from_data(self.fk_resource, value, **kwargs)
 
 class ReferenceField(ApiNameMixin, fields.ToOneField):
     """
