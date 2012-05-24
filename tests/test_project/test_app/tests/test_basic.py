@@ -17,6 +17,7 @@ from test_project.test_app.api import resources
 # TODO: Test set operations
 # TODO: Test bulk operations
 # TODO: Test ordering, filtering
+# TODO: Use Tastypie's testcase class for tests?
 
 @utils.override_settings(DEBUG=True)
 class BasicTest(test_runner.MongoEngineTestCase):
