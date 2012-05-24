@@ -922,3 +922,36 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(response['is_published'], True)
+
+    def test_nested_lists_field(self):
+        posts = """
+        {
+            "posts": [
+                {
+                    "title": "Embedded post 1",
+                    "comments": [
+                        {"content": "Embedded comment 1"},
+                        {"content": "Embedded comment 2"}
+                    ]
+                },
+                {
+                    "title": "Embedded post 2",
+                    "comments": [
+                        {"content": "Embedded comment 1"},
+                        {"content": "Embedded comment 2"}
+                    ]
+                }
+            ]
+        }
+        """
+
+        response = self.c.post(self.resourceListURI('board'), posts, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        board_uri = response['location']
+
+        response = self.c.get(board_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['posts'][1]['comments'][0]['content'], 'Embedded comment 1')

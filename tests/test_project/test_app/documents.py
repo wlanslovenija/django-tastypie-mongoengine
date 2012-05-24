@@ -21,6 +21,16 @@ class EmbeddedStrangePerson(EmbeddedPerson):
 class Customer(mongoengine.Document):
     person = mongoengine.ReferenceField(Person)
 
+class EmbeddedComment(mongoengine.EmbeddedDocument):
+    content = mongoengine.StringField(max_length=200, required=True)
+
+class EmbeddedPost(mongoengine.EmbeddedDocument):
+    title = mongoengine.StringField(max_length=200, required=True)
+    comments = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedComment))
+
+class Board(mongoengine.Document):
+    posts = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPost))
+
 class EmbeddedDocumentFieldTest(mongoengine.Document):
     customer = mongoengine.EmbeddedDocumentField(EmbeddedPerson)
 
