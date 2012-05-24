@@ -42,15 +42,22 @@ Related and Embedded Fields
 ===========================
 
 Most document fields are automatically mapped to corresponding Tastypie fields
-but some are not. Of course, you can also manually define those automatically
-mapped fields if, for example, you want to define some read-only.
+but some are not. Of course, you can also manually define (override) those
+automatically mapped fields if, for example, you want to define some read-only.
 
 .. warning::
 
-    When manually defining document fields be careful to properly map
+    When manually defining resource fields be careful to properly map
     MongoEngine attributes to Tastypie attributes. For example, ``required``
     and ``null`` attributes are inversed in meaning, but both are by default
     ``False``.
+
+.. warning::
+
+    When manually defining resource fields be careful not to forget to set
+    ``attribute`` to document's field name. It is not set automatically and
+    if it is not set it is assumed that you will be processing this field
+    manually (in for example, resource's ``hydrate`` method).
 
 ReferenceField
 --------------

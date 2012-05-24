@@ -479,7 +479,7 @@ class MongoEngineResource(resources.ModelResource):
         return result
 
     @classmethod
-    def get_fields(self, fields=None, excludes=None):
+    def get_fields(cls, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
         additional fields based on the associated document.
@@ -489,12 +489,12 @@ class MongoEngineResource(resources.ModelResource):
         fields = fields or []
         excludes = excludes or []
 
-        if not self._meta.object_class:
+        if not cls._meta.object_class:
             return final_fields
 
-        for name, f in self._meta.object_class._fields.iteritems():
+        for name, f in cls._meta.object_class._fields.iteritems():
             # If the field name is already present, skip
-            if name in self.base_fields:
+            if name in cls.base_fields:
                 continue
 
             # If field is not present in explicit field listing, skip
@@ -509,7 +509,7 @@ class MongoEngineResource(resources.ModelResource):
             #if cls.should_skip_field(f):
             #    continue
 
-            api_field_class = self.api_field_from_mongo_field(f)
+            api_field_class = cls.api_field_from_mongo_field(f)
 
             kwargs = {
                 'attribute': name,

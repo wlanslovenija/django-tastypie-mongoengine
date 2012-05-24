@@ -85,7 +85,7 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
         authorization = tastypie_authorization.Authorization()
 
 class BooleanMapTestResource(resources.MongoEngineResource):
-    is_published_defined = tastypie_fields.BooleanField(default=False, null=False)
+    is_published_defined = tastypie_fields.BooleanField(default=False, null=False, attribute='is_published_defined')
 
     class Meta:
         queryset = documents.BooleanMapTest.objects.all()
