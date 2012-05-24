@@ -874,22 +874,22 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(resources.BooleanMapTestResource().is_published_auto.null, resources.BooleanMapTestResource().is_published_defined.null)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_auto": true}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_defined": true}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_auto": true, "is_published_defined": true}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_auto": false}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_defined": false}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('booleanmaptest'), '{"is_published_auto": false, "is_published_defined": true}', content_type='application/json')
         self.assertEqual(response.status_code, 201)

@@ -331,7 +331,13 @@ class MongoEngineResource(resources.ModelResource):
                 # so we check for missing field here
                 # (https://github.com/toastdriven/django-tastypie/issues/496)
                 if not bundle.data.has_key(field_object.instance_name):
-                    value = None
+                    if field_object._default is not tastypie_fields.NOT_PROVIDED:
+                        if callable(field_object.default):
+                            value = field_object.default()
+                        else:
+                            value = field_object.default
+                    else:
+                        value = None
                 else:
                     value = field_object.hydrate(bundle)
                 if value is None:
