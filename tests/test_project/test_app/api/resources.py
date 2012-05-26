@@ -42,6 +42,7 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
         object_class = documents.EmbeddedPerson
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+        ordering = ('name',)
 
         polymorphic = {
             'person': 'self',
@@ -65,6 +66,7 @@ class EmbeddedPostResource(resources.MongoEngineResource):
 
     class Meta:
         object_class = documents.EmbeddedPost
+        ordering = ('title', 'comments')
 
 class BoardResource(resources.MongoEngineResource):
     posts = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedPostResource', attribute='posts', full=True, null=True)
@@ -101,6 +103,7 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
         queryset = documents.EmbeddedListFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+        ordering = ('id', 'embeddedlist')
 
 class BooleanMapTestResource(resources.MongoEngineResource):
     is_published_defined = tastypie_fields.BooleanField(default=False, null=False, attribute='is_published_defined')

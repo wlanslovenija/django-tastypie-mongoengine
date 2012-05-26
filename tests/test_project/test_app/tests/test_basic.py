@@ -941,15 +941,15 @@ class BasicTest(test_runner.MongoEngineTestCase):
                 {
                     "title": "Embedded post 1",
                     "comments": [
-                        {"content": "Embedded comment 1"},
-                        {"content": "Embedded comment 2"}
+                        {"content": "Embedded comment 1.1"},
+                        {"content": "Embedded comment 1.2"}
                     ]
                 },
                 {
                     "title": "Embedded post 2",
                     "comments": [
-                        {"content": "Embedded comment 1"},
-                        {"content": "Embedded comment 2"}
+                        {"content": "Embedded comment 2.1"},
+                        {"content": "Embedded comment 2.2"}
                     ]
                 }
             ]
@@ -965,4 +965,92 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['posts'][1]['comments'][0]['content'], 'Embedded comment 1')
+        #self.assertEqual(response['posts'][0]['comments'][0]['content'], 'Embedded comment 1.1')
+        self.assertEqual(response['posts'][1]['comments'][0]['content'], 'Embedded comment 2.1')
+
+        response = self.c.get(board_uri + 'posts/', {'order_by': 'title'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['title'], 'Embedded post 1')
+        self.assertEqual(response['objects'][1]['title'], 'Embedded post 2')
+
+        response = self.c.get(board_uri + 'posts/', {'order_by': '-title'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['title'], 'Embedded post 2')
+        self.assertEqual(response['objects'][1]['title'], 'Embedded post 1')
+
+        response = self.c.get(board_uri + 'posts/', {'order_by': 'comments__content'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['title'], 'Embedded post 1')
+        self.assertEqual(response['objects'][1]['title'], 'Embedded post 2')
+
+        response = self.c.get(board_uri + 'posts/', {'order_by': '-comments__content'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['title'], 'Embedded post 2')
+        self.assertEqual(response['objects'][1]['title'], 'Embedded post 1')
+
+def test_ordering(self):
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource1_uri = response['location']
+
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1a"}, {"name": "Embedded person 2a", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource2_uri = response['location']
+
+        # MongoDB IDs are monotonic so this will sort it in the creation order
+        response = self.c.get(self.resourceListURI('embeddedlistfieldtest'), {'order_by': 'id'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))
+        self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
+
+        # MongoDB IDs are monotonic so this will sort it in reverse of the creation order
+        response = self.c.get(self.resourceListURI('embeddedlistfieldtest'), {'order_by': '-id'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
+        self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))
+
+        embeddedresource1_uri = self.fullURItoAbsoluteURI(mainresource1_uri) + 'embeddedlist/'
+        embedded1_uri = self.fullURItoAbsoluteURI(mainresource1_uri) + 'embeddedlist/0/'
+        embedded2_uri = self.fullURItoAbsoluteURI(mainresource1_uri) + 'embeddedlist/1/'
+
+        response = self.c.get(embeddedresource1_uri, {'order_by': 'name'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], embedded1_uri)
+        self.assertEqual(response['objects'][1]['resource_uri'], embedded2_uri)
+
+        response = self.c.get(embeddedresource1_uri, {'order_by': '-name'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], embedded2_uri)
+        self.assertEqual(response['objects'][1]['resource_uri'], embedded1_uri)
+
+        response = self.c.get(self.resourceListURI('embeddedlistfieldtest'), {'order_by': 'embeddedlist__name'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))
+        self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
+
+        response = self.c.get(self.resourceListURI('embeddedlistfieldtest'), {'order_by': '-embeddedlist__name'})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
+        self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))

@@ -3,6 +3,7 @@ import itertools, re, sys
 from django.conf import urls
 from django.core import exceptions
 from django.db.models import base
+from django.db.models.sql import constants
 from django.utils import datastructures
 
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
@@ -43,15 +44,53 @@ class ListQuerySet(datastructures.SortedDict):
 
         for field, value in kwargs.iteritems():
             value = self._process_filter_value(value)
-            if '__' in field:
+            if constants.LOOKUP_SEP in field:
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
                 result = ListQuerySet([(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value])
             except AttributeError, e:
-                raise queryset.InvalidQueryError('Cannot resolve field "%s"' % (field,))
+                raise tastypie_exceptions.InvalidFilterError(e)
 
         return result
+
+    def attrgetter(self, attr):
+        def g(obj):
+            return self.resolve_attr(obj, attr)
+        return g
+
+    def resolve_attr(self, obj, attr):
+        for name in attr.split(constants.LOOKUP_SEP):
+            while isinstance(obj, list):
+                # Try to be a bit similar to MongoDB
+                for o in obj:
+                    if hasattr(o, name):
+                        obj = o
+                        break
+                else:
+                    obj = obj[0]
+            obj = getattr(obj, name)
+        return obj
+
+    def order_by(self, *field_names):
+        if not len(field_names):
+            return self
+
+        result = self
+
+        for field in reversed(field_names):
+            if field.startswith('-'):
+                reverse = True
+                field = field[1:]
+            else:
+                reverse = False
+
+            try:
+                result = [(obj.pk, obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
+            except (AttributeError, IndexError), e:
+                raise tastypie_exceptions.InvalidSortError(e)
+
+        return ListQuerySet(result)
 
     def __iter__(self):
         return self.itervalues()
@@ -606,16 +645,6 @@ class MongoEngineListResource(MongoEngineResource):
                 pass
 
         return kwargs_subset
-
-    def build_filters(self, filters=None):
-        # We do everything in apply_filters
-        return filters
-
-    def apply_sorting(self, obj_list, options=None):
-        if 'order_by' in options or 'sort_by' in options:
-            raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotImplemented())
-
-        return obj_list
 
     def get_object_list(self, request):
         if not self.instance:
