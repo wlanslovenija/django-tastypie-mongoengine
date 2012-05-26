@@ -20,23 +20,34 @@ class NOT_HYDRATED:
     pass
 
 class ListQuerySet(datastructures.SortedDict):
+    def _process_filter_value(self, value):
+        # Sometimes value is passed as a list of one value
+        # (if filter was converted from QueryDict, for example)
+        if isinstance(value, (list, tuple)):
+            assert len(value) == 1
+            return value[0]
+        else:
+            return value
+
     def filter(self, **kwargs):
         result = self
 
         # pk optimization
         if 'pk' in kwargs:
-            pk = kwargs.pop('pk')
+            pk = self._process_filter_value(kwargs.pop('pk'))
             if pk in result:
-                result = ListQuerySet({pk: result[pk]})
-            else:
+                result = ListQuerySet([(pk, result[pk])])
+            # Sometimes None is passed as a pk to not filter by pk
+            elif pk is not None:
                 result = ListQuerySet()
 
         for field, value in kwargs.iteritems():
+            value = self._process_filter_value(value)
             if '__' in field:
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
-                result = ListQuerySet({(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value})
+                result = ListQuerySet([(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value])
             except AttributeError, e:
                 raise queryset.InvalidQueryError('Cannot resolve field "%s"' % (field,))
 
@@ -50,6 +61,9 @@ class ListQuerySet(datastructures.SortedDict):
         # a list here (order is same as our iteration order)
         if isinstance(key, (int, long)):
             return itertools.islice(self, key, key+1).next()
+        # Tastypie also access sliced object_list in paginator
+        elif isinstance(key, slice):
+            return itertools.islice(self, key.start, key.stop, key.step)
         else:
             return super(ListQuerySet, self).__getitem__(key)
 
@@ -611,7 +625,7 @@ class MongoEngineListResource(MongoEngineResource):
             obj.pk = unicode(index)
             return obj
 
-        return ListQuerySet({(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))})
+        return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = self._meta.object_class()

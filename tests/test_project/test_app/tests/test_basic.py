@@ -516,6 +516,17 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         embeddedresource_uri = self.fullURItoAbsoluteURI(mainresource_uri) + 'embeddedlist/'
 
+        response = self.c.get(embeddedresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['objects'][0]['name'], 'Embedded person 1')
+        self.assertEqual(response['objects'][0]['optional'], None)
+        self.assertEqual(response['objects'][0]['resource_uri'], embedded1_uri)
+        self.assertEqual(response['objects'][1]['name'], 'Embedded person 2')
+        self.assertEqual(response['objects'][1]['optional'], 'Optional')
+        self.assertEqual(response['objects'][1]['resource_uri'], embedded2_uri)
+
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3"}', content_type='application/json')
         self.assertRedirects(response, embedded3_uri, status_code=201)
 
