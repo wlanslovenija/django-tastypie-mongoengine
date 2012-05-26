@@ -556,12 +556,11 @@ class MongoEngineListResource(MongoEngineResource):
     A MongoEngine resource used in conjunction with EmbeddedListField.
     """
 
-    def __init__(self, parent, attribute, api_name=None):
-        self.parent = parent(api_name)
-        self.attribute = attribute
-        self.instance = None
-
+    def __init__(self, api_name=None):
         super(MongoEngineListResource, self).__init__(api_name)
+
+        self.instance = None
+        self.parent = self._parent(api_name)
 
     def _safe_get(self, request, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
