@@ -1,6 +1,6 @@
 from tastypie import authorization as tastypie_authorization, fields as tastypie_fields
 
-from tastypie_mongoengine import resources, fields
+from tastypie_mongoengine import fields, paginator, resources
 
 from test_project.test_app import documents
 
@@ -17,6 +17,8 @@ class PersonResource(resources.MongoEngineResource):
         queryset = documents.Person.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+        ordering = ('name',)
+        paginator_class = paginator.Paginator
 
         polymorphic = {
             'person': 'self',

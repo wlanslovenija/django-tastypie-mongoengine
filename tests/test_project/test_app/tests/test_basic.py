@@ -996,7 +996,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['objects'][0]['title'], 'Embedded post 2')
         self.assertEqual(response['objects'][1]['title'], 'Embedded post 1')
 
-def test_ordering(self):
+    def test_ordering(self):
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "optional": "Optional"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
@@ -1054,3 +1054,46 @@ def test_ordering(self):
 
         self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
         self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))
+
+    def test_pagination(self):
+        for i in range(100):
+            response = self.c.post(self.resourceListURI('person'), '{"name": "Person %s"}' % i, content_type='application/json')
+            self.assertEqual(response.status_code, 201)
+
+        response = self.c.get(self.resourceListURI('person'), {'offset': '42', 'limit': 7})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 100)
+        self.assertEqual(response['meta']['offset'], 42)
+        self.assertEqual(response['meta']['limit'], 7)
+        self.assertEqual(len(response['objects']), 7)
+
+        for i, obj in enumerate(response['objects']):
+            self.assertEqual(obj['name'], "Person %s" % (42 + i))
+
+        offset = response['objects'][0]['id']
+
+        response = self.c.get(self.resourceListURI('person'), {'offset': offset, 'limit': 7})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 100)
+        self.assertEqual(response['meta']['offset'], offset)
+        self.assertEqual(response['meta']['limit'], 7)
+        self.assertEqual(len(response['objects']), 7)
+
+        for i, obj in enumerate(response['objects']):
+            self.assertEqual(obj['name'], "Person %s" % (42 + i))
+
+        response = self.c.get(self.resourceListURI('person'), {'offset': offset, 'limit': -7})
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 100)
+        self.assertEqual(response['meta']['offset'], offset)
+        self.assertEqual(response['meta']['limit'], -7)
+        self.assertEqual(len(response['objects']), 7)
+
+        for i, obj in enumerate(response['objects']):
+            self.assertEqual(obj['name'], "Person %s" % (42 - i))
