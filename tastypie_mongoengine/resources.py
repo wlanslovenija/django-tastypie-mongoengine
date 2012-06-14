@@ -2,7 +2,7 @@ import itertools, re, sys
 
 from django.conf import urls
 from django.core import exceptions
-from django.db.models import base
+from django.db import models
 from django.db.models.sql import constants
 from django.utils import datastructures
 
@@ -254,7 +254,7 @@ class MongoEngineResource(resources.ModelResource):
 
     def _wrap_polymorphic(self, resource, fun):
         object_class = self._meta.object_class
-        queryset = self._meta.queryset
+        qs = self._meta.queryset
         base_fields = self.base_fields
         fields = self.fields
         try:
@@ -268,7 +268,7 @@ class MongoEngineResource(resources.ModelResource):
             return fun()
         finally:
             self._meta.object_class = object_class
-            self._meta.queryset = queryset
+            self._meta.queryset = qs
             self.base_fields = base_fields
             self.fields = fields
 
@@ -383,7 +383,7 @@ class MongoEngineResource(resources.ModelResource):
                 # Tastypie also ignores missing fields in PUT,
                 # so we check for missing field here
                 # (https://github.com/toastdriven/django-tastypie/issues/496)
-                if not bundle.data.has_key(field_object.instance_name):
+                if field_object.instance_name not in bundle.data:
                     if field_object._default is not tastypie_fields.NOT_PROVIDED:
                         if callable(field_object.default):
                             value = field_object.default()
@@ -465,19 +465,19 @@ class MongoEngineResource(resources.ModelResource):
         try:
             return super(MongoEngineResource, self).obj_get(request, **kwargs)
         except self._meta.object_class.DoesNotExist, e:
-            exp = base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
+            exp = models.base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
             raise exp(*e.args)
         except queryset.DoesNotExist, e:
-            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            exp = models.base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
         except self._meta.object_class.MultipleObjectsReturned, e:
-            exp = base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
+            exp = models.base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
         except queryset.MultipleObjectsReturned, e:
-            exp = base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
+            exp = models.base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
         except mongoengine.ValidationError, e:
-            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            exp = models.base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
     def obj_update(self, bundle, request=None, **kwargs):
@@ -704,7 +704,7 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise NotFound("A document instance matching the provided arguments could not be found.")
+                raise exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
         getattr(self.instance, self.attribute).pop(int(obj.pk))
         self.instance.save()
