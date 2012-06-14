@@ -1097,3 +1097,25 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         for i, obj in enumerate(response['objects']):
             self.assertEqual(obj['name'], "Person %s" % (42 - i))
+
+    def test_embedded_in_embedded_doc(self):
+        post = """
+        {
+            "post": {
+                "title": "Embedded post",
+                "comments": [
+                    {"content": "Embedded comment 1"},
+                    {"content": "Embedded comment 2"}
+                ]
+            }
+        }
+        """
+        response = self.c.post(self.resourceListURI('embeddedlistinembeddeddoctest'), post, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        post_uri = response['location']
+
+        response = self.c.get(post_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+        self.assertEqual(len(response['post']['comments']), 2)
