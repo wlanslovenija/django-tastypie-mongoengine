@@ -2,7 +2,7 @@ import itertools, re, sys
 
 from django.conf import urls
 from django.core import exceptions
-from django.db import models
+from django.db.models import base
 from django.db.models.sql import constants
 from django.utils import datastructures
 
@@ -214,7 +214,7 @@ class MongoEngineResource(resources.ModelResource):
         return resource.dispatch(request=request, **kwargs)
 
     def base_urls(self):
-        base = super(MongoEngineResource, self).base_urls()
+        urls = super(MongoEngineResource, self).base_urls()
 
         embedded_urls = []
         embedded = ((name, obj) for name, obj in self.fields.iteritems() if isinstance(obj, fields.EmbeddedListField))
@@ -233,7 +233,7 @@ class MongoEngineResource(resources.ModelResource):
                 ),
             ))
 
-        return embedded_urls + base
+        return embedded_urls + urls
 
     def get_object_list(self, request):
         """
@@ -465,19 +465,19 @@ class MongoEngineResource(resources.ModelResource):
         try:
             return super(MongoEngineResource, self).obj_get(request, **kwargs)
         except self._meta.object_class.DoesNotExist, e:
-            exp = models.base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
+            exp = base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
             raise exp(*e.args)
         except queryset.DoesNotExist, e:
-            exp = models.base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
         except self._meta.object_class.MultipleObjectsReturned, e:
-            exp = models.base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
+            exp = base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
         except queryset.MultipleObjectsReturned, e:
-            exp = models.base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
+            exp = base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
         except mongoengine.ValidationError, e:
-            exp = models.base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
+            exp = base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
     def obj_update(self, bundle, request=None, **kwargs):
