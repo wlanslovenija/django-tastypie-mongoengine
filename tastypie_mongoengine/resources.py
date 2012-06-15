@@ -721,7 +721,7 @@ class MongoEngineListResource(MongoEngineResource):
             'index': obj.pk,
         }
 
-        if hasattr(obj, 'parent'):
+        if hasattr(obj, 'parent') and hasattr(obj.parent, 'pk'):
             kwargs['pk'] = obj.parent.pk
         else:
             kwargs['pk'] = self.instance.pk
