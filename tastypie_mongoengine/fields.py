@@ -1,4 +1,4 @@
-from tastypie import bundle as tastypie_bundle, fields
+from tastypie import bundle as tastypie_bundle, exceptions, fields
 
 class ObjectId(fields.ApiField):
     """
@@ -39,7 +39,7 @@ class BuildRelatedMixin(ApiNameMixin):
         elif getattr(value, 'obj', None):
             return value
         else:
-            raise fields.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
+            raise exceptions.ApiFieldError("The '%s' field was not given dictionary-like data: %s." % (self.instance_name, value))
 
 class ReferenceField(ApiNameMixin, fields.ToOneField):
     """
@@ -149,7 +149,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
-                raise fields.ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
+                raise exceptions.ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
             return []
 
         the_m2ms = None
@@ -161,7 +161,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
 
         if not the_m2ms:
             if not self.null:
-                raise fields.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
+                raise exceptions.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
             return []
 
         self.m2m_resources = []
