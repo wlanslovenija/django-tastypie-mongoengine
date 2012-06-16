@@ -31,6 +31,9 @@ class EmbeddedPost(mongoengine.EmbeddedDocument):
 class Board(mongoengine.Document):
     posts = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPost))
 
+class EmbeddedListInEmbeddedDocTest(mongoengine.Document):
+    post = mongoengine.EmbeddedDocumentField(EmbeddedPost)
+
 class EmbeddedDocumentFieldTest(mongoengine.Document):
     customer = mongoengine.EmbeddedDocumentField(EmbeddedPerson)
 

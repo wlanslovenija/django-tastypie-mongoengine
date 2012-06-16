@@ -78,6 +78,14 @@ class BoardResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
 
+class EmbeddedListInEmbeddedDocTestResource(resources.MongoEngineResource):
+    post = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPostResource', attribute='post')
+
+    class Meta:
+        queryset = documents.EmbeddedListInEmbeddedDocTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
 class EmbeddedDocumentFieldTestResource(resources.MongoEngineResource):
     customer = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPersonResource', attribute='customer', null=True)
 
