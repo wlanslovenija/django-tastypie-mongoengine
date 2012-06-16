@@ -154,6 +154,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
+
         field_names = new_class.base_fields.keys()
 
         for field_name in field_names:
@@ -226,7 +227,7 @@ class MongoEngineResource(resources.ModelResource):
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<subresource_pk>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
@@ -624,14 +625,12 @@ class MongoEngineListResource(MongoEngineResource):
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
 
     def dispatch(self, request_type, request, **kwargs):
-        index = None
-        if 'index' in kwargs:
-            index = kwargs.pop('index')
+        pk = kwargs.pop('subresource_pk', None)
 
         self.instance = self._safe_get(request, **kwargs)
 
-        # We use pk as index from now on
-        kwargs['pk'] = index
+        # We use subresource pk from now on
+        kwargs['pk'] = pk
 
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
@@ -650,11 +649,23 @@ class MongoEngineListResource(MongoEngineResource):
         if not self.instance:
             return ListQuerySet()
 
-        def add_index(index, obj):
-            obj.pk = unicode(index)
+        def add_pk(pk, obj):
+            obj.pk = pk
             return obj
 
-        return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
+        subresource_pk = getattr(self._meta, 'subresource_pk', None)
+        object_list = getattr(self.instance, self.attribute)
+
+        if subresource_pk:
+            results = []
+
+            for obj in object_list:
+                pk = unicode(getattr(obj, subresource_pk))
+                results.append((pk, add_pk(pk, obj)))
+
+            return ListQuerySet(results)
+        else:
+            return ListQuerySet([(unicode(index + 1), add_pk(unicode(index + 1), obj)) for index, obj in enumerate(object_list)])
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = self._meta.object_class()
@@ -662,12 +673,13 @@ class MongoEngineListResource(MongoEngineResource):
         for key, value in kwargs.items():
             setattr(bundle.obj, key, value)
 
+        object_list = getattr(self.instance, self.attribute)
         bundle = self.full_hydrate(bundle)
 
-        object_list = getattr(self.instance, self.attribute)
-        object_list.append(bundle.obj)
+        subresource_pk = getattr(self._meta, 'subresource_pk', None)
+        bundle.obj.pk = len(object_list) + 1 if subresource_pk is None else unicode(getattr(bundle.obj, subresource_pk))
 
-        bundle.obj.pk = unicode(len(object_list) - 1)
+        object_list.append(bundle.obj)
 
         self.save_related(bundle)
 
@@ -687,7 +699,10 @@ class MongoEngineListResource(MongoEngineResource):
         bundle = self.full_hydrate(bundle)
 
         object_list = getattr(self.instance, self.attribute)
-        object_list[int(bundle.obj.pk)] = bundle.obj
+        index = self.find_in_object_list(bundle.obj.pk, object_list)
+
+        if index >= 0:
+            object_list[index] = bundle.obj
 
         self.save_related(bundle)
 
@@ -696,6 +711,20 @@ class MongoEngineListResource(MongoEngineResource):
         m2m_bundle = self.hydrate_m2m(bundle)
         self.save_m2m(m2m_bundle)
         return bundle
+
+    def find_in_object_list(self, pk, object_list):
+        subresource_pk = getattr(self._meta, 'subresource_pk', None)
+
+        if subresource_pk is None:
+            return int(pk) - 1
+        else:
+            pk = unicode(pk)
+
+            for index, obj in enumerate(object_list):
+                if unicode(getattr(obj, subresource_pk)) == pk:
+                    return index
+
+            return -1
 
     def obj_delete(self, request=None, **kwargs):
         obj = kwargs.pop('_obj', None)
@@ -706,7 +735,14 @@ class MongoEngineListResource(MongoEngineResource):
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
                 raise exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        getattr(self.instance, self.attribute).pop(int(obj.pk))
+        object_list = getattr(self.instance, self.attribute)
+        index = self.find_in_object_list(obj.pk, object_list)
+
+        if index >= 0:
+            object_list.pop(index)
+        else:
+            raise tastypie_exceptions.NotFound("An embedded document matching the provided arguments could not be found.")
+
         self.instance.save()
 
     def get_resource_uri(self, bundle_or_obj):
@@ -718,7 +754,7 @@ class MongoEngineListResource(MongoEngineResource):
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute,
-            'index': obj.pk,
+            'subresource_pk': obj.pk,
         }
 
         if hasattr(obj, 'parent'):
