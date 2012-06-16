@@ -147,10 +147,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
         return data
 
     def dehydrate(self, bundle):
-        if not bundle.obj:
-            if not self.null:
-                raise exceptions.ApiFieldError("The document %r does not have a primary key and can not be in a ToMany context." % bundle.obj)
-            return []
+        assert bundle.obj
 
         the_m2ms = None
 

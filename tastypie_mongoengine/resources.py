@@ -158,8 +158,13 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         for field_name in field_names:
             if field_name == 'resource_uri':
-                # Delete resource_uri from fields if this is mongoengine.EmbeddedDocument
-                if meta and issubclass(meta.object_class, mongoengine.EmbeddedDocument):
+                if hasattr(new_class, '_parent'):
+                    if new_class._parent._meta.object_class and issubclass(new_class._parent._meta.object_class, mongoengine.EmbeddedDocument):
+                        # TODO: We do not support yet nested resources
+                        # If parent is embedded document, then also this one do not have its own resource_uri
+                        del(new_class.base_fields[field_name])
+                elif new_class._meta.object_class and issubclass(new_class._meta.object_class, mongoengine.EmbeddedDocument):
+                    # Embedded documents which are not in lists (do not have _parent) do not have their own resource_uri
                     del(new_class.base_fields[field_name])
             if field_name in new_class.declared_fields:
                 continue
@@ -721,7 +726,10 @@ class MongoEngineListResource(MongoEngineResource):
             'index': obj.pk,
         }
 
-        if hasattr(obj, 'parent') and hasattr(obj.parent, 'pk'):
+        if hasattr(obj, 'parent'):
+            # pk could not exist in the case of nested resources, but we should not come here in this
+            # case as we should remove resource_uri from fields in MongoEngineModelDeclarativeMetaclass
+            # TODO: Support nested resources
             kwargs['pk'] = obj.parent.pk
         else:
             kwargs['pk'] = self.instance.pk
