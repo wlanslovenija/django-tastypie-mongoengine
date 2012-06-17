@@ -738,7 +738,7 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
         object_list = getattr(self.instance, self.attribute)
         index = self.find_in_object_list(obj.pk, object_list)
