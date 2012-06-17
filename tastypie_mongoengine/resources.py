@@ -670,7 +670,7 @@ class MongoEngineListResource(MongoEngineResource):
 
             return ListQuerySet(results)
         else:
-            return ListQuerySet([(unicode(index + 1), add_pk(unicode(index + 1), obj)) for index, obj in enumerate(object_list)])
+            return ListQuerySet([(unicode(index), add_pk(unicode(index), obj)) for index, obj in enumerate(object_list)])
 
     def obj_create(self, bundle, request=None, **kwargs):
         bundle.obj = self._meta.object_class()
@@ -682,7 +682,7 @@ class MongoEngineListResource(MongoEngineResource):
         bundle = self.full_hydrate(bundle)
 
         subresource_pk = getattr(self._meta, 'subresource_pk', None)
-        bundle.obj.pk = len(object_list) + 1 if subresource_pk is None else unicode(getattr(bundle.obj, subresource_pk))
+        bundle.obj.pk = len(object_list) if subresource_pk is None else unicode(getattr(bundle.obj, subresource_pk))
 
         object_list.append(bundle.obj)
 
@@ -721,7 +721,7 @@ class MongoEngineListResource(MongoEngineResource):
         subresource_pk = getattr(self._meta, 'subresource_pk', None)
 
         if subresource_pk is None:
-            return int(pk) - 1
+            return int(pk)
         else:
             pk = unicode(pk)
 

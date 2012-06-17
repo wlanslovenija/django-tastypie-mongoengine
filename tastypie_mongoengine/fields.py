@@ -174,7 +174,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
         subresource_pk = getattr(self.to_class(self.get_api_name())._meta, 'subresource_pk', None)
 
         for index, m2m in enumerate(the_m2ms):
-            m2m.pk = unicode(index + 1) if subresource_pk is None else unicode(getattr(m2m, subresource_pk, index + 1))
+            m2m.pk = unicode(index) if subresource_pk is None else unicode(getattr(m2m, subresource_pk, index))
             m2m.parent = bundle.obj
             m2m_resource = self.get_related_resource(m2m)
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
