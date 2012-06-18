@@ -412,26 +412,6 @@ class MongoEngineResource(resources.ModelResource):
             # like [] and {} we leave to validate bellow to catch them
             if getattr(bundle.obj, field_object.attribute, None) is None or value is None: # We also have to check value, read comment above
                 raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
-
-        # We validate MongoEngine object here so that possible exception
-        # is thrown before going to MongoEngine layer, wrapped in
-        # Django exception so that it is handled properly
-        # is_valid method is too early as bundle.obj is not yet ready then
-        try:
-            # Validation fails for unsaved related resources, so
-            # we fake pk here temporary, for validation code to
-            # assume resource is saved
-            pk = getattr(bundle.obj, 'pk', None)
-            try:
-                if pk is None:
-                    bundle.obj.pk = bson.ObjectId()
-                bundle.obj.validate()
-            finally:
-                if pk is None:
-                    bundle.obj.pk = pk
-        except mongoengine.ValidationError, e:
-            raise exceptions.ValidationError(e.message)
-
         return bundle
 
     def build_schema(self):
@@ -485,6 +465,12 @@ class MongoEngineResource(resources.ModelResource):
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
+    def obj_create(self, bundle, request=None, **kwargs):
+        try:
+            return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
+
     def obj_update(self, bundle, request=None, **kwargs):
         if not bundle.obj or not getattr(bundle.obj, 'pk', None):
             try:
@@ -494,12 +480,15 @@ class MongoEngineResource(resources.ModelResource):
 
         bundle = self.full_hydrate(bundle)
 
-        self.save_related(bundle)
+        try:
+            self.save_related(bundle)
 
-        bundle.obj.save()
+            bundle.obj.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
         return bundle
 
     def obj_delete(self, request=None, **kwargs):
@@ -674,12 +663,15 @@ class MongoEngineListResource(MongoEngineResource):
 
         bundle.obj.pk = unicode(len(object_list) - 1)
 
-        self.save_related(bundle)
+        try:
+            self.save_related(bundle)
 
-        self.instance.save()
+            self.instance.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
         return bundle
 
     def obj_update(self, bundle, request=None, **kwargs):
@@ -694,12 +686,15 @@ class MongoEngineListResource(MongoEngineResource):
         object_list = getattr(self.instance, self.attribute)
         object_list[int(bundle.obj.pk)] = bundle.obj
 
-        self.save_related(bundle)
+        try:
+            self.save_related(bundle)
 
-        self.instance.save()
+            self.instance.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
         return bundle
 
     def obj_delete(self, request=None, **kwargs):
