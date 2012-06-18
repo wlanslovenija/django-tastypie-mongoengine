@@ -130,3 +130,11 @@ class EmbeddedListWithFlagFieldTestResource(resources.MongoEngineResource):
         queryset = documents.EmbeddedListWithFlagFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+
+class AutoAllocationFieldTestResource(resources.MongoEngineResource):
+    slug = tastypie_fields.CharField(readonly=True, attribute='slug')
+
+    class Meta:
+        queryset = documents.AutoAllocationFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
