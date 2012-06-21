@@ -748,6 +748,13 @@ class MongoEngineListResource(MongoEngineResource):
         else:
             raise tastypie_exceptions.NotFound("An embedded document matching the provided arguments could not be found.")
 
+        # Be sure to delete FileField files
+        fields = obj.__class__._fields
+        file_fields = [name for name in fields.keys() if isinstance(fields[name], mongoengine.fields.FileField)]
+
+        for file_field in file_fields:
+            obj[file_field].delete()
+
         self.instance.save()
 
     def get_resource_uri(self, bundle_or_obj):
