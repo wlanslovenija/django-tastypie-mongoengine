@@ -8,12 +8,14 @@ class ObjectId(fields.ApiField):
     help_text = "ID field"
 
     def __init__(self, *args, **kwargs):
-        kwargs.update({
+        kwargs_default = {
             'readonly': True,
             'unique': True,
             'blank': False,
             'null': False,
-        })
+        }
+        kwargs_default.update(kwargs)
+        kwargs = kwargs_default
         kwargs.pop('default', None)
 
         super(ObjectId, self).__init__(*args, **kwargs)
