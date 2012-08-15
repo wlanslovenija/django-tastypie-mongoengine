@@ -105,7 +105,8 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
         }
 
     def hydrate(self, bundle):
-        return super(EmbeddedDocumentField, self).hydrate(bundle).obj
+        hydrated = super(EmbeddedDocumentField, self).hydrate(bundle)
+        return hydrated.obj if hasattr(hydrated, 'obj') else None
 
 class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     """
