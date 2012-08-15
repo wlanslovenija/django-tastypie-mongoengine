@@ -41,7 +41,7 @@ class BuildRelatedMixin(ApiNameMixin):
         elif getattr(value, 'obj', None):
             return value
         else:
-            raise exceptions.ApiFieldError("The '%s' field was not given dictionary-like data: %s." % (self.instance_name, value))
+            raise exceptions.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
 
 class ReferenceField(ApiNameMixin, fields.ToOneField):
     """
