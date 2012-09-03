@@ -15,6 +15,11 @@ import bson
 
 from tastypie_mongoengine import fields
 
+class Query(object):
+    query_terms = dict([(x, None) for x in queryset.QUERY_TERMS_ALL])
+
+queryset.QuerySet.query = Query()
+
 CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 
 class NOT_HYDRATED:
