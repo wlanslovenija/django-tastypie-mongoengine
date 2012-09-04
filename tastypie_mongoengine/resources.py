@@ -15,8 +15,14 @@ import bson
 
 from tastypie_mongoengine import fields
 
+# Latest Tastypie works with query terms from django db so we need to extend QuerySet object to support query terms from MongoEngine 
+# If we cannot access them, we use hardcoded ones
+getattr(queryset, 'QUERY_TERMS_ALL', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box',  'within_polygon', 'near', 'near_sphere',
+'contains', 'icontains', 'startswith',  'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 
+'match',))
+
 class Query(object):
-    query_terms = dict([(x, None) for x in queryset.QUERY_TERMS_ALL])
+    query_terms = dict([(x, None) for query_term in queryset.QUERY_TERMS_ALL])
 
 queryset.QuerySet.query = Query()
 
