@@ -15,9 +15,11 @@ import bson
 
 from tastypie_mongoengine import fields
 
-# When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM. We use a mock Query object to provide the same interface and return query terms by MongoEngine. MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
+# When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM. 
+# We use a mock Query object to provide the same interface and return query terms by MongoEngine. 
+# MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
 
-getattr(queryset, 'QUERY_TERMS_ALL', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not',  'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere','contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match',))
+getattr(queryset, 'QUERY_TERMS_ALL', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not',  'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere','contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'))
 
 class Query(object):
     query_terms = dict([(query_term, None) for query_term in queryset.QUERY_TERMS_ALL])
