@@ -116,6 +116,15 @@ class EmbeddedListFieldTestResource(resources.MongoEngineResource):
         authorization = tastypie_authorization.Authorization()
         ordering = ('id', 'embeddedlist')
 
+class ReferencedListFieldTestResource(resources.MongoEngineResource):
+    referencedlist = fields.ReferencedListField(of='test_project.test_app.api.resources.PersonResource', attribute='referencedlist', full=True, null=True)
+
+    class Meta:
+        queryset = documents.ReferencedListFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        ordering = ('id', 'referencedlist')
+
 class BooleanMapTestResource(resources.MongoEngineResource):
     is_published_defined = tastypie_fields.BooleanField(default=False, null=False, attribute='is_published_defined')
 
