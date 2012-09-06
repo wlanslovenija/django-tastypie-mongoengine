@@ -14,8 +14,10 @@ v1_api.register(resources.EmbeddedDocumentFieldTestResource())
 v1_api.register(resources.DictFieldTestResource())
 v1_api.register(resources.ListFieldTestResource())
 v1_api.register(resources.EmbeddedListFieldTestResource())
+v1_api.register(resources.ReferencedListFieldTestResource())
 v1_api.register(resources.BooleanMapTestResource())
 v1_api.register(resources.EmbeddedListWithFlagFieldTestResource())
+v1_api.register(resources.AutoAllocationFieldTestResource())
 
 urlpatterns = patterns('',
     url(r'^api/', include(v1_api.urls)),

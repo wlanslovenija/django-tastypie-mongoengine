@@ -48,6 +48,15 @@ class ListFieldTest(mongoengine.Document):
 class EmbeddedListFieldTest(mongoengine.Document):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
 
+class ReferencedListFieldTest(mongoengine.Document):
+    referencedlist = mongoengine.ListField(mongoengine.ReferenceField(Person))
+    
+    def save(self, *args, **kwargs):
+        for person in self.referencedlist:
+            if not getattr(person, 'id', None):
+                person.save()
+        super(ReferencedListFieldTest, self).save(*args, **kwargs)
+
 class BooleanMapTest(mongoengine.Document):
     is_published_auto = mongoengine.BooleanField(default=False, required=True)
     is_published_defined = mongoengine.BooleanField(default=False, required=True)
@@ -55,3 +64,13 @@ class BooleanMapTest(mongoengine.Document):
 class EmbeddedListWithFlagFieldTest(mongoengine.Document):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
     is_published = mongoengine.BooleanField(default=False, required=True)
+
+class AutoAllocationFieldTest(mongoengine.Document):
+    name = mongoengine.StringField(required=True)
+    slug = mongoengine.StringField(required=True)
+
+    def save(self, *args, **kwargs):
+        from django.template.defaultfilters import slugify
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super(AutoAllocationFieldTest, self).save(*args, **kwargs)
