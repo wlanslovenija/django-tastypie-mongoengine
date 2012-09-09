@@ -500,7 +500,7 @@ class MongoEngineResource(resources.ModelResource):
         if not bundle.obj or not getattr(bundle.obj, 'pk', None):
             try:
                 bundle.obj = self.obj_get(request, **kwargs)
-            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist, IndexError):
                 raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
         bundle = self.full_hydrate(bundle)

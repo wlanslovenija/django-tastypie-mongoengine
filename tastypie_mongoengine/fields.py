@@ -8,12 +8,14 @@ class ObjectId(fields.ApiField):
     help_text = "ID field"
 
     def __init__(self, *args, **kwargs):
-        kwargs.update({
+        kwargs_default = {
             'readonly': True,
             'unique': True,
             'blank': False,
             'null': False,
-        })
+        }
+        kwargs_default.update(kwargs)
+        kwargs = kwargs_default
         kwargs.pop('default', None)
 
         super(ObjectId, self).__init__(*args, **kwargs)
@@ -103,7 +105,8 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
         }
 
     def hydrate(self, bundle):
-        return super(EmbeddedDocumentField, self).hydrate(bundle).obj
+        hydrated = super(EmbeddedDocumentField, self).hydrate(bundle)
+        return hydrated.obj if hasattr(hydrated, 'obj') else None
 
 class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     """
