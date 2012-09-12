@@ -28,7 +28,7 @@ class ApiNameMixin(object):
 
 class BuildRelatedMixin(ApiNameMixin):
     def build_related_resource(self, value, **kwargs):
-        # A version of build_related_resource which allows only dictionary-alike data
+        # A version of build_related_resource which allows only dictionary-like data
         if hasattr(value, 'items'):
             self.fk_resource = self.to_class(self.get_api_name())
             # We force resource to cannot be updated so that
@@ -111,6 +111,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     with EmbeddedDocumentField.
     """
 
+    SPARSE = 'sparse'
     is_related = False
     is_m2m = False
 
@@ -118,6 +119,13 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
         self._to_class_with_listresource = None
 
         help_text = kwargs.pop('help_text', None)
+        full = kwargs.get('full', False)
+
+        if isinstance(full, basestring):
+            self.is_sparse = full == 'sparse'
+            kwargs['full'] = False
+        else:
+            self.is_sparse = False
 
         super(EmbeddedListField, self).__init__(to=of, attribute=attribute, **kwargs)
 
@@ -163,9 +171,10 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
 
         self.m2m_resources = []
         m2m_dehydrated = []
+        subresource_pk = getattr(self.to_class(self.get_api_name())._meta, 'subresource_pk', None)
 
         for index, m2m in enumerate(the_m2ms):
-            m2m.pk = index
+            m2m.pk = unicode(index) if subresource_pk is None else unicode(getattr(m2m, subresource_pk, index))
             m2m.parent = bundle.obj
             m2m_resource = self.get_related_resource(m2m)
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
@@ -173,6 +182,13 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
 
         return m2m_dehydrated
+
+    def dehydrate_related(self, bundle, related_resource):
+        if self.is_sparse:
+            sparse_key = getattr(self.to_class(self.get_api_name())._meta, 'sparse_key', 'resource_uri')
+            return {sparse_key: related_resource.get_resource_uri(bundle)}
+        else:
+            return super(EmbeddedListField, self).dehydrate_related(bundle, related_resource)
 
     def hydrate(self, bundle):
         return [b.obj for b in self.hydrate_m2m(bundle)]
