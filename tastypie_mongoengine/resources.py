@@ -1,7 +1,7 @@
 import itertools, re, sys
 
 from django.conf import urls
-from django.core import exceptions
+from django.core import exceptions, urlresolvers
 from django.db.models import base as models_base
 from django.db.models.sql import constants
 from django.utils import datastructures
@@ -24,7 +24,8 @@ QUERY_TERMS_ALL = getattr(queryset, 'QUERY_TERMS_ALL', ('ne', 'gt', 'gte', 'lt',
 class Query(object):
     query_terms = dict([(query_term, None) for query_term in QUERY_TERMS_ALL])
 
-queryset.QuerySet.query = Query()
+if not hasattr(queryset.QuerySet, 'query'):
+    queryset.QuerySet.query = Query()
 
 CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 
@@ -32,6 +33,9 @@ class NOT_HYDRATED:
     pass
 
 class ListQuerySet(datastructures.SortedDict):
+    # Workaround for https://github.com/toastdriven/django-tastypie/pull/670
+    query = Query()
+
     def _process_filter_value(self, value):
         # Sometimes value is passed as a list of one value
         # (if filter was converted from QueryDict, for example)
@@ -161,6 +165,10 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             if hasattr(meta, 'object_class') and not hasattr(meta, 'queryset'):
                 if hasattr(meta.object_class, 'objects'):
                     setattr(meta, 'queryset', meta.object_class.objects.all())
+                elif issubclass(meta.object_class, mongoengine.EmbeddedDocument):
+                    # Workaround for https://github.com/toastdriven/django-tastypie/pull/670
+                    # We ignore queryset value later on, so we can set it here to empty one
+                    setattr(meta, 'queryset', ListQuerySet())
 
         new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
@@ -496,7 +504,8 @@ class MongoEngineResource(resources.ModelResource):
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
-    def obj_update(self, bundle, request=None, **kwargs):
+    # TODO: Use skip_errors?
+    def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
         if not bundle.obj or not getattr(bundle.obj, 'pk', None):
             try:
                 bundle.obj = self.obj_get(request, **kwargs)
@@ -693,7 +702,8 @@ class MongoEngineListResource(MongoEngineResource):
         self.save_m2m(m2m_bundle)
         return bundle
 
-    def obj_update(self, bundle, request=None, **kwargs):
+    # TODO: Use skip_errors?
+    def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
         if not bundle.obj or not getattr(bundle.obj, 'pk', None):
             try:
                 bundle.obj = self.obj_get(request, **kwargs)
@@ -725,7 +735,7 @@ class MongoEngineListResource(MongoEngineResource):
         getattr(self.instance, self.attribute).pop(int(obj.pk))
         self.instance.save()
 
-    def get_resource_uri(self, bundle_or_obj):
+    def detail_uri_kwargs(self, bundle_or_obj):
         if isinstance(bundle_or_obj, tastypie_bundle.Bundle):
             obj = bundle_or_obj.obj
         else:
@@ -748,4 +758,13 @@ class MongoEngineListResource(MongoEngineResource):
         if self._meta.api_name is not None:
             kwargs['api_name'] = self._meta.api_name
 
-        return self._build_reverse_url('api_dispatch_subresource_detail', kwargs=kwargs)
+        return kwargs
+
+    def get_resource_uri(self, bundle_or_obj=None, url_name='api_dispatch_subresource_list'):
+        if bundle_or_obj is not None:
+            url_name = 'api_dispatch_subresource_detail'
+
+        try:
+            return self._build_reverse_url(url_name, kwargs=self.resource_uri_kwargs(bundle_or_obj))
+        except urlresolvers.NoReverseMatch:
+            return ''

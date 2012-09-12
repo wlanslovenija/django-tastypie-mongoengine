@@ -63,7 +63,7 @@ class ReferenceField(ApiNameMixin, fields.ToOneField):
 
     def build_schema(self):
         return {
-            'reference_uri': self.to_class(self.get_api_name()).get_resource_list_uri(),
+            'reference_uri': self.to_class(self.get_api_name()).get_resource_uri(),
         }
 
 class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
