@@ -4,7 +4,7 @@ from django.conf import settings
 from django.test import client, simple, testcases
 from django.utils import unittest
 
-from mongoengine import connection
+from mongoengine import connect, connection
 from mongoengine.django import tests
 
 class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
@@ -51,6 +51,10 @@ class MongoEngineTestCase(tests.MongoTestCase):
     
     .. _pull request: https://github.com/hmarr/mongoengine/pull/506
     """
+
+    def __init__(self, methodName='runtest'):
+        self.db = connect(self.db_name)
+        super(tests.MongoTestCase, self).__init__(methodName)
 
     def _post_teardown(self):
         self.db = connection.get_db()
