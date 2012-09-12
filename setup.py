@@ -4,6 +4,12 @@ import os
 
 from setuptools import setup, find_packages
 
+try:
+    # Workaround for http://bugs.python.org/issue15881
+    import multiprocessing
+except ImportError:
+    pass
+
 VERSION = '0.2.2'
 
 if __name__ == '__main__':
