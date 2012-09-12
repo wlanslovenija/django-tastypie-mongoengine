@@ -53,6 +53,7 @@ class MongoEngineTestCase(tests.MongoTestCase):
     """
 
     def __init__(self, methodName='runtest'):
+        connection.disconnect()
         self.db = connect(self.db_name)
         super(tests.MongoTestCase, self).__init__(methodName)
 
