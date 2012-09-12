@@ -30,7 +30,7 @@ AUTHENTICATION_BACKENDS = (
 
 SESSION_ENGINE = 'mongoengine.django.sessions'
 
-TEST_RUNNER = 'test_project.test_runner.MongoEngineTestSuiteRunner'
+TEST_RUNNER = 'tastypie_mongoengine.test_runner.MongoEngineTestSuiteRunner'
 
 INSTALLED_APPS = (
     'tastypie',

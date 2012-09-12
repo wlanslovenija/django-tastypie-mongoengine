@@ -8,9 +8,8 @@ from django.utils import simplejson as json
 
 from tastypie import authorization as tastypie_authorization
 
-from tastypie_mongoengine import resources as tastypie_mongoengine_resources
+from tastypie_mongoengine import resources as tastypie_mongoengine_resources, test_runner
 
-from test_project import test_runner
 from test_project.test_app import documents
 from test_project.test_app.api import resources
 
