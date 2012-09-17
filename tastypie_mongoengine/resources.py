@@ -259,12 +259,25 @@ class MongoEngineResource(resources.ModelResource):
 
         return embedded_urls + base
 
+    def _reset_collection(self):
+        """
+        Because MongoEngine creates collection connection when queryset object is initialized,
+        we have to make sure that currently configured connection to database is really used.
+        This happens for example in tests, where querysets are initialized as resource classes
+        are imported, but then database connection is changed to test database.
+        """
+
+        self._meta.queryset._document._collection = None
+        self._meta.queryset._collection_obj = self._meta.queryset._document._get_collection()
+        self._meta.queryset._reset_already_indexed()
+
     def get_object_list(self, request):
         """
         An ORM-specific implementation of ``get_object_list``.
         Returns a queryset that may have been limited by other overrides.
         """
 
+        self._reset_collection()
         return self._meta.queryset.clone()
 
     def _get_object_type(self, request):
@@ -504,8 +517,14 @@ class MongoEngineResource(resources.ModelResource):
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
+    def obj_create(self, bundle, request=None, **kwargs):
+        self._reset_collection()
+        return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+
     # TODO: Use skip_errors?
     def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
+        self._reset_collection()
+
         if not bundle.obj or not getattr(bundle.obj, 'pk', None):
             try:
                 bundle.obj = self.obj_get(request, **kwargs)
@@ -523,6 +542,8 @@ class MongoEngineResource(resources.ModelResource):
         return bundle
 
     def obj_delete(self, request=None, **kwargs):
+        self._reset_collection()
+
         # MongoEngine exceptions are separate from Django exceptions and Tastypie
         # expects Django exceptions, so we catch it here ourselves and raise NotFound
         try:

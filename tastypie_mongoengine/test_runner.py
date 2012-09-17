@@ -15,6 +15,8 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     Django setting.
     """
 
+    db_name = 'test_%s' % settings.MONGO_DATABASE_NAME
+
     def _filter_suite(self, suite):
         filters = getattr(settings, 'TEST_RUNNER_FILTER', None)
 
@@ -40,10 +42,11 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
         return simple.reorder_suite(suite, (testcases.TestCase,))
 
     def setup_databases(self, **kwargs):
-        pass
+        connection.disconnect()
+        connect(self.db_name)
 
     def teardown_databases(self, old_config, **kwargs):
-        pass
+        connection.get_connection().drop_database(self.db_name)
 
 class MongoEngineTestCase(tests.MongoTestCase):
     """
@@ -53,8 +56,7 @@ class MongoEngineTestCase(tests.MongoTestCase):
     """
 
     def __init__(self, methodName='runtest'):
-        connection.disconnect()
-        self.db = connect(self.db_name)
+        # We skip MongoTestCase init
         super(tests.MongoTestCase, self).__init__(methodName)
 
     def _post_teardown(self):
@@ -65,7 +67,9 @@ class MongoEngineTestCase(tests.MongoTestCase):
 # Taken from https://code.djangoproject.com/attachment/ticket/17797/django-test-client-PATCH.patch
 
 def requestfactory_patch(self, path, data={}, content_type=client.MULTIPART_CONTENT, **extra):
-    "Construct a PATCH request."
+    """
+    Construct a PATCH request.
+    """
     
     patch_data = self._encode_data(data, content_type)
 

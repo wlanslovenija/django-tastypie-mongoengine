@@ -14,7 +14,8 @@ class OtherStrangePersonResource(resources.MongoEngineResource):
 
 class PersonResource(resources.MongoEngineResource):
     class Meta:
-        queryset = documents.Person.objects.all()
+        # Ordering by id so that pagination is predictable
+        queryset = documents.Person.objects.all().order_by('id')
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
         ordering = ('name',)
