@@ -364,6 +364,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(customer2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
+        
+        self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
+        self.assertEqual(response['person']['optional'], 'Optional PATCHED')
+
         self.assertEqual(response['employed'], False)
 
         response = self.c.patch(customer2_uri, '{"employed": true}', content_type='application/json')
@@ -373,8 +377,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
-        self.assertEqual(response['person']['optional'], 'Optional PATCHED')
+        self.assertEqual(response['employed'], True)
 
         response = self.c.patch(embeddeddocumentfieldtest_uri, '{"customer": {"name": "Embedded person PATCHED"}}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
@@ -443,7 +446,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(len(response['fields']), 3)
+        self.assertEqual(len(response['fields']), 4)
         self.assertEqual(response['fields']['person']['reference_uri'], self.resourceListURI('person'))
 
         listfieldtest_schema_uri = self.resourceListURI('listfieldtest') + 'schema/'
