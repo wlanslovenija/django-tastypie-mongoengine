@@ -120,6 +120,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['name'], 'Person 1 UPDATED')
         self.assertEqual(response['person']['optional'], None)
         self.assertEqual(response['person']['resource_uri'], self.fullURItoAbsoluteURI(person1_uri))
+        self.assertEqual(response['employed'], False)
 
         response = self.c.post(self.resourceListURI('customer'), '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
         self.assertEqual(response.status_code, 201)
@@ -358,6 +359,14 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['optional'], 'Optional PATCHED')
 
         response = self.c.patch(customer2_uri, '{"person": "%s"}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(customer2_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+        self.assertEqual(response['employed'], False)
+
+        response = self.c.patch(customer2_uri, '{"employed": true}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
 
         response = self.c.get(customer2_uri)
