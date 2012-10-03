@@ -575,6 +575,15 @@ class MongoEngineResource(resources.ModelResource):
         return result
 
     @classmethod
+    def api_field_options(cls, name, field, options):
+        """
+        Allows dynamic change of field options when creating resource
+        fields from document fields automatically.
+        """
+
+        return options
+
+    @classmethod
     def get_fields(cls, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
@@ -630,6 +639,8 @@ class MongoEngineResource(resources.ModelResource):
                 else:
                     if f.default is not None: # If not MongoEngine's default
                         kwargs['default'] = f.default
+
+            kwargs = cls.api_field_options(name, f, kwargs)
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
