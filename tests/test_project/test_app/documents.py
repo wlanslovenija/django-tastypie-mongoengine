@@ -20,6 +20,7 @@ class EmbeddedStrangePerson(EmbeddedPerson):
 
 class Customer(mongoengine.Document):
     person = mongoengine.ReferenceField(Person)
+    employed = mongoengine.BooleanField(default=False)
 
 class EmbeddedComment(mongoengine.EmbeddedDocument):
     content = mongoengine.StringField(max_length=200, required=True)
