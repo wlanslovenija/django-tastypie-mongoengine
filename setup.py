@@ -44,5 +44,6 @@ if __name__ == '__main__':
             'Django>=1.4',
             'django-tastypie>=0.9.11',
             'mongoengine>=0.6.11',
+            'nose',
         ),
     )
