@@ -427,7 +427,7 @@ class MongoEngineResource(resources.ModelResource):
                 continue
 
             # We are just trying to fix Tastypie here, for other "null" values
-            # like [] and {} we leave to MongoEngine validate bellow to catch them
+            # like [] and {} we leave to MongoEngine validate to catch them
             if getattr(bundle.obj, field_object.attribute, None) is None:
                 raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
 
