@@ -11,8 +11,6 @@ from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exception
 import mongoengine
 from mongoengine import queryset
 
-import bson
-
 from tastypie_mongoengine import fields
 
 # When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM. 
@@ -399,8 +397,6 @@ class MongoEngineResource(resources.ModelResource):
             if not field_object.attribute:
                 continue
 
-            value = NOT_HYDRATED
-
             # Tastypie also skips setting value if it is None, but this means
             # updates to None are ignored: this is not good as it hides invalid
             # PUT/PATCH REST requests (setting value to None which should fail
@@ -409,6 +405,8 @@ class MongoEngineResource(resources.ModelResource):
             # (https://github.com/toastdriven/django-tastypie/issues/492)
             # We hydrate field again only if existing value is not None
             if getattr(bundle.obj, field_object.attribute, None) is not None:
+                value = NOT_HYDRATED
+
                 # Tastypie also ignores missing fields in PUT,
                 # so we check for missing field here
                 # (https://github.com/toastdriven/django-tastypie/issues/496)
@@ -423,38 +421,15 @@ class MongoEngineResource(resources.ModelResource):
                 else:
                     value = field_object.hydrate(bundle)
                 if value is None:
-                    # This does not really set None in a way that calling
-                    # getattr on bundle.obj would return None later on
-                    # This is how MongoEngine is implemented
-                    # (https://github.com/hmarr/mongoengine/issues/505)
                     setattr(bundle.obj, field_object.attribute, None)
 
             if field_object.blank or field_object.null:
                 continue
 
             # We are just trying to fix Tastypie here, for other "null" values
-            # like [] and {} we leave to validate bellow to catch them
-            if getattr(bundle.obj, field_object.attribute, None) is None or value is None: # We also have to check value, read comment above
+            # like [] and {} we leave to MongoEngine validate bellow to catch them
+            if getattr(bundle.obj, field_object.attribute, None) is None:
                 raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
-
-        # We validate MongoEngine object here so that possible exception
-        # is thrown before going to MongoEngine layer, wrapped in
-        # Django exception so that it is handled properly
-        # is_valid method is too early as bundle.obj is not yet ready then
-        try:
-            # Validation fails for unsaved related resources, so
-            # we fake pk here temporary, for validation code to
-            # assume resource is saved
-            pk = getattr(bundle.obj, 'pk', None)
-            try:
-                if pk is None:
-                    bundle.obj.pk = bson.ObjectId()
-                bundle.obj.validate()
-            finally:
-                if pk is None:
-                    bundle.obj.pk = pk
-        except mongoengine.ValidationError, e:
-            raise exceptions.ValidationError(e.message)
 
         return bundle
 
@@ -510,27 +485,33 @@ class MongoEngineResource(resources.ModelResource):
             raise exp(*e.args)
 
     def obj_create(self, bundle, request=None, **kwargs):
-        self._reset_collection()
-        return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+        try:
+            self._reset_collection()
+            return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_update(self, bundle, request=None, **kwargs):
-        self._reset_collection()
+        try:
+            self._reset_collection()
 
-        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
-            try:
-                bundle.obj = self.obj_get(request, **kwargs)
-            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+            if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+                try:
+                    bundle.obj = self.obj_get(request, **kwargs)
+                except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                    raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        self.save_related(bundle)
+            self.save_related(bundle)
 
-        bundle.obj.save()
+            bundle.obj.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_delete(self, request=None, **kwargs):
         self._reset_collection()
@@ -705,45 +686,51 @@ class MongoEngineListResource(MongoEngineResource):
         return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, request=None, **kwargs):
-        bundle.obj = self._meta.object_class()
+        try:
+            bundle.obj = self._meta.object_class()
 
-        for key, value in kwargs.items():
-            setattr(bundle.obj, key, value)
+            for key, value in kwargs.items():
+                setattr(bundle.obj, key, value)
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        object_list = getattr(self.instance, self.attribute)
-        object_list.append(bundle.obj)
+            object_list = getattr(self.instance, self.attribute)
+            object_list.append(bundle.obj)
 
-        bundle.obj.pk = unicode(len(object_list) - 1)
+            bundle.obj.pk = unicode(len(object_list) - 1)
 
-        self.save_related(bundle)
+            self.save_related(bundle)
 
-        self.instance.save()
+            self.instance.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_update(self, bundle, request=None, **kwargs):
-        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
-            try:
-                bundle.obj = self.obj_get(request, **kwargs)
-            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+        try:
+            if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+                try:
+                    bundle.obj = self.obj_get(request, **kwargs)
+                except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                    raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        object_list = getattr(self.instance, self.attribute)
-        object_list[int(bundle.obj.pk)] = bundle.obj
+            object_list = getattr(self.instance, self.attribute)
+            object_list[int(bundle.obj.pk)] = bundle.obj
 
-        self.save_related(bundle)
+            self.save_related(bundle)
 
-        self.instance.save()
+            self.instance.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_delete(self, request=None, **kwargs):
         obj = kwargs.pop('_obj', None)

@@ -184,9 +184,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('dictfieldtest'), '{"dictionary": {}}', content_type='application/json')
         self.assertContains(response, 'required and cannot be empty', status_code=400)
 
-        # Covered by Tastypie
+        # Covered by MongoEngine validation
         response = self.c.post(self.resourceListURI('dictfieldtest'), '{"dictionary": null}', content_type='application/json')
-        self.assertContains(response, 'field has no data', status_code=400)
+        self.assertContains(response, 'required and cannot be empty', status_code=400)
 
         # Covered by MongoEngine validation
         response = self.c.post(self.resourceListURI('dictfieldtest'), '{"dictionary": false}', content_type='application/json')
