@@ -70,6 +70,18 @@ ReferenceField
         person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
         ...
 
+ReferencedListField
+-------------------
+
+If you are using ``ListField`` containing a ``ReferenceField`` in
+MongoEngine document, it should be mapped to ``ReferencedListField``::
+
+    from tastypie_mongoengine import fields
+
+    class ReferencedListFieldTestResource(resources.MongoEngineResource):
+        referencedlist = fields.ReferencedListField(of='test_project.test_app.api.resources.PersonResource', attribute='referencedlist', full=True, null=True)
+        ...
+
 EmbeddedDocumentField
 ---------------------
 
