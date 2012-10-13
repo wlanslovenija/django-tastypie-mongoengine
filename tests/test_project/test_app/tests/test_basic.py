@@ -371,7 +371,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['employed'], False)
 
-        # There is a bug in Tastypie:
+        # There is a bug in Tastypie, so we test only on versions which have it fixed
         # https://github.com/toastdriven/django-tastypie/issues/501
         # https://github.com/toastdriven/django-tastypie/commit/e4de9377cb
         if tastypie.__version__ > (0, 9, 11):
