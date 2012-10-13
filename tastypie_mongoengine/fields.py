@@ -202,8 +202,6 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
     is_m2m = False
 
     def __init__(self, of, attribute, **kwargs):
-        self._to_class_with_listresource = None
-
         help_text = kwargs.pop('help_text', None)
 
         super(ReferencedListField, self).__init__(to=of, attribute=attribute, **kwargs)
@@ -234,7 +232,11 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
         return data
 
     def dehydrate(self, bundle):
-        assert bundle.obj
+        if not bundle.obj or not bundle.obj.pk:
+            if not self.null:
+                raise exceptions.ApiFieldError("The document %r does not have a primary key and can not be used in a ReferencedList context." % bundle.obj)
+
+            return []
 
         the_m2ms = None
 
@@ -254,7 +256,6 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
         for m2m in the_m2ms:
             m2m_resource = self.get_related_resource(m2m)
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
-            m2m_resource.get_resource_uri(m2m_bundle)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
 
