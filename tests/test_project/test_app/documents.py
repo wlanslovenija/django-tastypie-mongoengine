@@ -56,3 +56,13 @@ class BooleanMapTest(mongoengine.Document):
 class EmbeddedListWithFlagFieldTest(mongoengine.Document):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
     is_published = mongoengine.BooleanField(default=False, required=True)
+
+class AutoAllocationFieldTest(mongoengine.Document):
+    name = mongoengine.StringField(required=True)
+    slug = mongoengine.StringField(required=True)
+
+    def save(self, *args, **kwargs):
+        from django.template.defaultfilters import slugify
+        if not self.slug:
+            self.slug = slugify(self.name)
+        super(AutoAllocationFieldTest, self).save(*args, **kwargs)

@@ -1158,3 +1158,15 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(len(response['post']['comments']), 2)
         self.assertTrue('resource_uri' not in response['post'])
         self.assertTrue('resource_uri' not in response['post']['comments'][0])
+
+    def test_field_auto_allocation(self):
+        response = self.c.post(self.resourceListURI('autoallocationfieldtest'), '{"name": "Auto slug test !"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        resource_uri = response['location']
+
+        response = self.c.get(resource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['slug'], u'auto-slug-test')
