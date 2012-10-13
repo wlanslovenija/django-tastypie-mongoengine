@@ -190,3 +190,75 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
                 'attribute': self.instance_name,
             })
         return self._to_class_with_listresource
+
+
+class ReferencedListField(ApiNameMixin, fields.ToManyField):
+    """
+    Represents a list of referenced objects. It must be used in conjunction
+    with ReferenceField.
+    """
+
+    is_related = False
+    is_m2m = False
+
+    def __init__(self, of, attribute, **kwargs):
+        self._to_class_with_listresource = None
+
+        help_text = kwargs.pop('help_text', None)
+
+        super(ReferencedListField, self).__init__(to=of, attribute=attribute, **kwargs)
+
+        self._help_text = help_text
+
+    @property
+    def help_text(self):
+        if not self._help_text:
+            self._help_text = "List of referenced documents (%s)." % (self.to_class(self.get_api_name())._meta.resource_name,)
+        return self._help_text
+
+    def build_schema(self):
+        data = {
+            'referenced': {
+                'fields': self.to_class(self.get_api_name()).build_schema()['fields'],
+            },
+        }
+
+        type_map = getattr(self.to_class(self.get_api_name())._meta, 'polymorphic', {})
+        if not type_map:
+            return data
+
+        data['referenced'].update({
+            'resource_types': type_map.keys(),
+        })
+
+        return data
+
+    def dehydrate(self, bundle):
+        assert bundle.obj
+
+        the_m2ms = None
+
+        if isinstance(self.attribute, basestring):
+            the_m2ms = getattr(bundle.obj, self.attribute)
+        elif callable(self.attribute):
+            the_m2ms = self.attribute(bundle)
+
+        if not the_m2ms:
+            if not self.null:
+                raise exceptions.ApiFieldError("The document %r has an empty attribute '%s' and does not allow a null value." % (bundle.obj, self.attribute))
+            return []
+
+        self.m2m_resources = []
+        m2m_dehydrated = []
+
+        for m2m in the_m2ms:
+            m2m_resource = self.get_related_resource(m2m)
+            m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
+            m2m_resource.get_resource_uri(m2m_bundle)
+            self.m2m_resources.append(m2m_resource)
+            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
+
+        return m2m_dehydrated
+
+    def hydrate(self, bundle):
+        return [b.obj for b in self.hydrate_m2m(bundle)]
