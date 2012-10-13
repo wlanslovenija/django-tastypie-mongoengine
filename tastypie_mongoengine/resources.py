@@ -523,6 +523,29 @@ class MongoEngineResource(resources.ModelResource):
         except queryset.DoesNotExist:
             raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
+    def save_m2m(self, bundle):
+        # Our related documents are not stored in a queryset, but a list,
+        # so we have to manually build a list, set it, and save
+
+        for field_name, field_object in self.fields.items():
+            if not getattr(field_object, 'is_m2m', False):
+                continue
+
+            if not field_object.attribute:
+                continue
+
+            if field_object.readonly:
+                continue
+
+            related_objs = []
+
+            for related_bundle in bundle.data[field_name]:
+                related_bundle.obj.save()
+                related_objs.append(related_bundle.obj)
+
+            setattr(bundle.obj, field_object.attribute, related_objs)
+            bundle.obj.save()
+
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
         """

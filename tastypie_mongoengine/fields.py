@@ -62,9 +62,14 @@ class ReferenceField(ApiNameMixin, fields.ToOneField):
         return self._help_text
 
     def build_schema(self):
+        resource = self.to_class(self.get_api_name())
         return {
-            'reference_uri': self.to_class(self.get_api_name()).get_resource_list_uri(),
-        }
+            'reference_uri': resource.get_resource_list_uri(),
+            'reference_schema': resource._build_reverse_url('api_get_schema', kwargs={
+                'api_name': self.get_api_name(),
+                'resource_name': resource._meta.resource_name,
+                }),
+            }
 
 class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
     """
@@ -164,6 +169,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
         self.m2m_resources = []
         m2m_dehydrated = []
 
+        # the_m2ms is a list, not a queryset
         for index, m2m in enumerate(the_m2ms):
             m2m.pk = index
             m2m.parent = bundle.obj
@@ -198,9 +204,6 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
     with ReferenceField.
     """
 
-    is_related = False
-    is_m2m = False
-
     def __init__(self, of, attribute, **kwargs):
         help_text = kwargs.pop('help_text', None)
 
@@ -215,21 +218,14 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
         return self._help_text
 
     def build_schema(self):
-        data = {
-            'referenced': {
-                'fields': self.to_class(self.get_api_name()).build_schema()['fields'],
-            },
+        resource = self.to_class(self.get_api_name())
+        return {
+            'reference_uri': resource.get_resource_list_uri(),
+            'reference_schema': resource._build_reverse_url('api_get_schema', kwargs={
+                'api_name': self.get_api_name(),
+                'resource_name': resource._meta.resource_name,
+            }),
         }
-
-        type_map = getattr(self.to_class(self.get_api_name())._meta, 'polymorphic', {})
-        if not type_map:
-            return data
-
-        data['referenced'].update({
-            'resource_types': type_map.keys(),
-        })
-
-        return data
 
     def dehydrate(self, bundle):
         if not bundle.obj or not bundle.obj.pk:
@@ -253,6 +249,7 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
         self.m2m_resources = []
         m2m_dehydrated = []
 
+        # the_m2ms is a list, not a queryset
         for m2m in the_m2ms:
             m2m_resource = self.get_related_resource(m2m)
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
@@ -260,6 +257,3 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
 
         return m2m_dehydrated
-
-    def hydrate(self, bundle):
-        return [b.obj for b in self.hydrate_m2m(bundle)]

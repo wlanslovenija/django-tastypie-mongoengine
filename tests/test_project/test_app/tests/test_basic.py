@@ -501,6 +501,16 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertTrue('person' in response['fields']['embeddedlist']['embedded']['resource_types'])
         self.assertTrue('strangeperson' in response['fields']['embeddedlist']['embedded']['resource_types'])
 
+        referencedlistfieldtest_schema_uri = self.resourceListURI('referencedlistfieldtest') + 'schema/'
+
+        response = self.c.get(referencedlistfieldtest_schema_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['fields']), 3)
+        self.assertTrue('reference_schema' in response['fields']['referencedlist'])
+        self.assertTrue('reference_uri' in response['fields']['referencedlist'])
+
     def test_invalid(self):
         # Invalid ObjectId
         response = self.c.get(self.resourceListURI('customer') + 'foobar/')

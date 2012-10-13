@@ -52,12 +52,6 @@ class EmbeddedListFieldTest(mongoengine.Document):
 class ReferencedListFieldTest(mongoengine.Document):
     referencedlist = mongoengine.ListField(mongoengine.ReferenceField(Person))
 
-    def save(self, *args, **kwargs):
-        for person in self.referencedlist:
-            if not getattr(person, 'id', None):
-                person.save()
-        super(ReferencedListFieldTest, self).save(*args, **kwargs)
-
 class BooleanMapTest(mongoengine.Document):
     is_published_auto = mongoengine.BooleanField(default=False, required=True)
     is_published_defined = mongoengine.BooleanField(default=False, required=True)
