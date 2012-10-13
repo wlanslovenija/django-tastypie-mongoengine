@@ -261,6 +261,21 @@ class MongoEngineResource(resources.ModelResource):
         self._meta.queryset._collection_obj = self._meta.queryset._document._get_collection()
         self._meta.queryset._reset_already_indexed()
 
+    def build_filters(self, filters=None):
+        # Workaround for https://github.com/toastdriven/django-tastypie/pull/670
+
+        if not hasattr(self._meta, 'queryset') or getattr(self._meta, 'queryset', None) is not None:
+            return super(MongoEngineResource, self).build_filters(filters)
+
+        class MockQuerySet(object):
+            query = Query()
+
+        self._meta.queryset = MockQuerySet()
+        try:
+            return super(MongoEngineResource, self).build_filters(filters)
+        finally:
+            self._meta.queryset = None
+
     def get_object_list(self, request):
         """
         An ORM-specific implementation of ``get_object_list``.

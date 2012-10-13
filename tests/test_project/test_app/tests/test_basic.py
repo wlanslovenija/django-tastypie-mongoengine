@@ -6,6 +6,7 @@ from django.core import exceptions, urlresolvers
 from django.test import client, utils
 from django.utils import simplejson as json
 
+import tastypie
 from tastypie import authorization as tastypie_authorization
 
 from tastypie_mongoengine import resources as tastypie_mongoengine_resources, test_runner
@@ -370,14 +371,18 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['employed'], False)
 
-        response = self.c.patch(customer2_uri, '{"employed": true}', content_type='application/json')
-        self.assertEqual(response.status_code, 202)
+        # There is a bug in Tastypie:
+        # https://github.com/toastdriven/django-tastypie/issues/501
+        # https://github.com/toastdriven/django-tastypie/commit/e4de9377cb
+        if tastypie.__version__ > (0, 9, 11):
+            response = self.c.patch(customer2_uri, '{"employed": true}', content_type='application/json')
+            self.assertEqual(response.status_code, 202)
 
-        response = self.c.get(customer2_uri)
-        self.assertEqual(response.status_code, 200)
-        response = json.loads(response.content)
+            response = self.c.get(customer2_uri)
+            self.assertEqual(response.status_code, 200)
+            response = json.loads(response.content)
 
-        self.assertEqual(response['employed'], True)
+            self.assertEqual(response['employed'], True)
 
         response = self.c.patch(embeddeddocumentfieldtest_uri, '{"customer": {"name": "Embedded person PATCHED"}}', content_type='application/json')
         self.assertEqual(response.status_code, 202)
