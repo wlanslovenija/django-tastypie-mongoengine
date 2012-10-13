@@ -432,6 +432,25 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(person1_uri)
         self.assertEqual(response.status_code, 404)
 
+    def test_objectclass(self):
+        response = self.c.get(self.resourceListURI('personobjectclass'))
+
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+        self.assertEqual(len(response['objects']), 0)
+
+        response = self.c.post(self.resourceListURI('personobjectclass'), '{"name": "Person 1"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        person1_uri = response['location']
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1')
+        self.assertEqual(response['optional'], None)
+
     def test_schema(self):
         embeddeddocumentfieldtest_schema_uri = self.resourceListURI('embeddeddocumentfieldtest') + 'schema/'
 

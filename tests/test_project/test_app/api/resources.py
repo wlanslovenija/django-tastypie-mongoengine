@@ -26,6 +26,13 @@ class PersonResource(resources.MongoEngineResource):
             'strangeperson': StrangePersonResource,
         }
 
+class PersonObjectClassResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.Person
+        allowed_methods = ('get', 'post')
+        authorization = tastypie_authorization.Authorization()
+        resource_name = 'personobjectclass'
+
 class OnlySubtypePersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Person.objects.all()
