@@ -68,8 +68,8 @@ class ReferenceField(ApiNameMixin, fields.ToOneField):
             'reference_schema': resource._build_reverse_url('api_get_schema', kwargs={
                 'api_name': self.get_api_name(),
                 'resource_name': resource._meta.resource_name,
-                }),
-            }
+            }),
+        }
 
 class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
     """
