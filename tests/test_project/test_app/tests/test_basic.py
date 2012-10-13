@@ -721,6 +721,54 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['embeddedlist']), 2)
 
+    def test_referencedlist(self):
+        # Create a Person to reference
+        response = self.c.post(self.resourceListURI('person'), '{"name": "Person 0"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        person_0_uri = response['location'][response['location'].index('/api'):]
+
+        # Testing POST
+        response = self.c.post(self.resourceListURI('referencedlistfieldtest'), '{"referencedlist": ["' + person_0_uri + '", {"name": "Person 1"}, {"name": "Person 2", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource_uri = response['location']
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['referencedlist']), 3)
+        for obj in response['referencedlist']:
+            self.assertEqual(obj['resource_type'], 'person')
+            self.assertEqual(obj['resource_uri'], '/%s/' % '/'.join(['api', self.api_name, obj['resource_type'], obj['id']]))
+
+        person_1, person_2 = response['referencedlist'][1:]
+
+        # Testing PUT
+        response = self.c.put(person_2['resource_uri'], '{"name": "Person 2", "optional": "Foobar PUT"}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.put(mainresource_uri, '{"referencedlist": ["' + person_0_uri + '", "' + person_1['resource_uri'] + '"]}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['referencedlist']), 2)
+        for idx, obj in enumerate(response['referencedlist']):
+            self.assertEqual(response['referencedlist'][idx]['name'], 'Person %i' % idx)
+
+        # Checks that referenced object still exists as it should be explicitely deleted.
+        response = self.c.get(person_2['resource_uri'])
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 2')
+        self.assertEqual(response['optional'], 'Foobar PUT')
+        self.assertEqual(response['resource_uri'], person_2['resource_uri'])
+
     def test_polymorphic_schema(self):
         person_schema_uri = self.resourceListURI('person') + 'schema/'
 
