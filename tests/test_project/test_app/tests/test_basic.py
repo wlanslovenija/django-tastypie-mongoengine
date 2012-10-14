@@ -242,6 +242,28 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": ["%s"]}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
         self.assertContains(response, 'was not given a dictionary-alike data', status_code=400)
 
+        response = self.c.post(self.resourceListURI('embeddedlistfieldnonfulltest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "hidden": "Should be hidden"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        embeddedlistfieldnonfulltest_uri = response['location']
+
+        response = self.c.get(embeddedlistfieldnonfulltest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['embeddedlist']), 2)
+
+        for i, person_uri in enumerate(response['embeddedlist']):
+            person = self.c.get(person_uri)
+            self.assertEqual(person.status_code, 200)
+            person = json.loads(person.content)
+
+            self.assertEqual(person['name'], 'Embedded person %d' % (i + 1))
+            self.assertTrue('hidden' not in person)
+
+        embeddedlistfieldtest_object = documents.EmbeddedListFieldTest.objects.get(pk=self.resourcePK(self.fullURItoAbsoluteURI(embeddedlistfieldnonfulltest_uri)))
+        self.assertEqual(embeddedlistfieldtest_object.embeddedlist[1].hidden, None)
+
         # Testing PUT
 
         response = self.c.put(person1_uri, '{"name": "Person 1z"}', content_type='application/json')
@@ -326,6 +348,22 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.put(embeddedlistfieldtest_uri, '{"embeddedlist": [{"name": "Embedded person 123"}, {}]}', content_type='application/json')
         self.assertContains(response, 'field has no data', status_code=400)
+
+        response = self.c.put(embeddedlistfieldnonfulltest_uri, '{"embeddedlist": [{"name": "Embedded person 1a"}, {"name": "Embedded person 2a"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embeddedlistfieldnonfulltest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['embeddedlist']), 2)
+
+        for i, person_uri in enumerate(response['embeddedlist']):
+            person = self.c.get(person_uri)
+            self.assertEqual(person.status_code, 200)
+            person = json.loads(person.content)
+
+            self.assertEqual(person['name'], 'Embedded person %da' % (i + 1))
 
         # Testing PATCH
 
@@ -788,6 +826,73 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(len(response['referencedlist']), 2)
         for i, person in enumerate(response['referencedlist']):
+            self.assertEqual(person['name'], 'Person %i' % (i + 2))
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1')
+
+    def test_referencedlistnonfull(self):
+        response = self.c.get(self.resourceListURI('referencedlistfieldnonfulltest'))
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['objects']), 0)
+
+        response = self.c.post(self.resourceListURI('person'), '{"name": "Person 1"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        person1_uri = response['location']
+
+        response = self.c.post(self.resourceListURI('referencedlistfieldnonfulltest'), '{"referencedlist": ["' + self.fullURItoAbsoluteURI(person1_uri) + '", {"name": "Person 2", "hidden": "Should be hidden"}, {"name": "Person 3", "optional": "Optional"}]}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        mainresource_uri = response['location']
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['referencedlist']), 3)
+        for i, person_uri in enumerate(response['referencedlist']):
+            person = self.c.get(person_uri)
+            self.assertEqual(person.status_code, 200)
+            person = json.loads(person.content)
+
+            self.assertEqual(person['resource_type'], 'person')
+            self.assertEqual(person['name'], 'Person %d' % (i + 1))
+            self.assertTrue('hidden' not in person)
+
+        referencedlistfieldtest_object = documents.ReferencedListFieldTest.objects.get(pk=self.resourcePK(self.fullURItoAbsoluteURI(mainresource_uri)))
+        self.assertEqual(referencedlistfieldtest_object.referencedlist[1].hidden, None)
+
+        person2_uri, person3_uri = response['referencedlist'][1:]
+
+        response = self.c.put(person2_uri, '{"name": "Person 2", "optional": "Foobar PUT"}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(person2_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 2')
+        self.assertEqual(response['optional'], 'Foobar PUT')
+
+        response = self.c.put(mainresource_uri, '{"referencedlist": ["' + person2_uri + '", "' + person3_uri + '"]}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(mainresource_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(len(response['referencedlist']), 2)
+        for i, person_uri in enumerate(response['referencedlist']):
+            person = self.c.get(person_uri)
+            self.assertEqual(person.status_code, 200)
+            person = json.loads(person.content)
+
             self.assertEqual(person['name'], 'Person %i' % (i + 2))
 
         response = self.c.get(person1_uri)
