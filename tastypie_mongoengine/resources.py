@@ -440,7 +440,7 @@ class MongoEngineResource(resources.ModelResource):
             # We process ListField specially here (and not use field's
             # build_schema) so that Tastypie's ListField can be used
             if isinstance(field_object, tastypie_fields.ListField):
-                if field_object.field:
+                if getattr(field_object, 'field', None):
                     data['fields'][field_name]['content'] = {}
 
                     field_type = field_object.field.__class__.__name__.lower()

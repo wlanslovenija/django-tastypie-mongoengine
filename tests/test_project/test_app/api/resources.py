@@ -114,6 +114,8 @@ class DictFieldTestResource(resources.MongoEngineResource):
         authorization = tastypie_authorization.Authorization()
 
 class ListFieldTestResource(resources.MongoEngineResource):
+    extra_list = tastypie_fields.ListField()
+
     class Meta:
         queryset = documents.ListFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')

@@ -521,7 +521,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
-        self.assertEqual(len(response['fields']), 5)
+        self.assertEqual(len(response['fields']), 6)
         self.assertEqual(response['fields']['intlist']['content']['type'], 'int')
         self.assertEqual(response['fields']['stringlist']['content']['type'], 'string')
         self.assertTrue('content' not in response['fields']['anytype'])
