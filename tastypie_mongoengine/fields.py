@@ -18,7 +18,7 @@ class ApiNameMixin(object):
 
 class BuildRelatedMixin(ApiNameMixin):
     def build_related_resource(self, value, **kwargs):
-        # A version of build_related_resource which allows only dictionary-alike data
+        # A version of build_related_resource which allows only dictionary-like data
         if hasattr(value, 'items'):
             self.fk_resource = self.to_class(self.get_api_name())
             # We force resource to cannot be updated so that
