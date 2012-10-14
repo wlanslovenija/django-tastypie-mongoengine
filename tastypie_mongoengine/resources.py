@@ -439,7 +439,8 @@ class MongoEngineResource(resources.ModelResource):
         for field_name, field_object in self.fields.items():
             # We process ListField specially here (and not use field's
             # build_schema) so that Tastypie's ListField can be used
-            if isinstance(field_object, tastypie_fields.ListField):
+            if (isinstance(field_object, tastypie_fields.ListField) and 
+                        hasattr(field_object, "field")):
                 if field_object.field:
                     data['fields'][field_name]['content'] = {}
 
