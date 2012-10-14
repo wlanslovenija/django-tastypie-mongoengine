@@ -391,7 +391,7 @@ class MongoEngineResource(resources.ModelResource):
         # reliable as it does checks in an inconsistent way
         # (https://github.com/toastdriven/django-tastypie/issues/491)
         for field_object in self.fields.itervalues():
-            if field_object.readonly:
+            if field_object.readonly or getattr(field_object, '_primary_key', False):
                 continue
 
             if not field_object.attribute:
@@ -411,7 +411,7 @@ class MongoEngineResource(resources.ModelResource):
                 # so we check for missing field here
                 # (https://github.com/toastdriven/django-tastypie/issues/496)
                 if field_object.instance_name not in bundle.data:
-                    if field_object._default is not tastypie_fields.NOT_PROVIDED:
+                    if field_object.has_default():
                         if callable(field_object.default):
                             value = field_object.default()
                         else:
@@ -620,10 +620,12 @@ class MongoEngineResource(resources.ModelResource):
 
             api_field_class = cls.api_field_from_mongo_field(f)
 
+            primary_key = f.primary_key or name == getattr(cls._meta, 'id_field', 'id')
+
             kwargs = {
                 'attribute': name,
-                'unique': f.unique,
-                'null': not f.required,
+                'unique': f.unique or primary_key,
+                'null': not f.required and not primary_key,
                 'help_text': f.help_text,
             }
 
@@ -648,6 +650,7 @@ class MongoEngineResource(resources.ModelResource):
 
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
+            final_fields[name]._primary_key = primary_key
 
             # We store MongoEngine field so that schema output can show
             # to which content the list is limited to (if any)

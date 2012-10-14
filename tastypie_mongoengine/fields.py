@@ -5,18 +5,8 @@ class ObjectId(fields.ApiField):
     Field for representing ObjectId from MongoDB.
     """
 
+    dehydrated_type = 'objectid'
     help_text = "ID field"
-
-    def __init__(self, *args, **kwargs):
-        kwargs.update({
-            'readonly': True,
-            'unique': True,
-            'blank': False,
-            'null': False,
-        })
-        kwargs.pop('default', None)
-
-        super(ObjectId, self).__init__(*args, **kwargs)
 
 class ApiNameMixin(object):
     def get_api_name(self):
