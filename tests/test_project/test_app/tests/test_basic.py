@@ -222,7 +222,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": []}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2"}]}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": [{"name": "Embedded person 1"}, {"name": "Embedded person 2", "hidden": "Should be hidden"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         embeddedlistfieldtest_uri = response['location']
@@ -233,7 +233,11 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['embeddedlist'][0]['name'], 'Embedded person 1')
         self.assertEqual(response['embeddedlist'][1]['name'], 'Embedded person 2')
+        self.assertTrue('hidden' not in response['embeddedlist'][1])
         self.assertEqual(len(response['embeddedlist']), 2)
+
+        embeddedlistfieldtest_object = documents.EmbeddedListFieldTest.objects.get(pk=self.resourcePK(self.fullURItoAbsoluteURI(embeddedlistfieldtest_uri)))
+        self.assertEqual(embeddedlistfieldtest_object.embeddedlist[1].hidden, None)
 
         response = self.c.post(self.resourceListURI('embeddedlistfieldtest'), '{"embeddedlist": ["%s"]}' % self.fullURItoAbsoluteURI(person1_uri), content_type='application/json')
         self.assertContains(response, 'was not given a dictionary-alike data', status_code=400)
@@ -743,7 +747,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         person1_uri = response['location']
 
-        response = self.c.post(self.resourceListURI('referencedlistfieldtest'), '{"referencedlist": ["' + self.fullURItoAbsoluteURI(person1_uri) + '", {"name": "Person 2"}, {"name": "Person 3", "optional": "Optional"}]}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('referencedlistfieldtest'), '{"referencedlist": ["' + self.fullURItoAbsoluteURI(person1_uri) + '", {"name": "Person 2", "hidden": "Should be hidden"}, {"name": "Person 3", "optional": "Optional"}]}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         mainresource_uri = response['location']
@@ -756,8 +760,12 @@ class BasicTest(test_runner.MongoEngineTestCase):
         for i, person in enumerate(response['referencedlist']):
             self.assertEqual(person['resource_type'], 'person')
             self.assertEqual(person['name'], 'Person %d' % (i + 1))
+            self.assertTrue('hidden' not in person)
 
         self.assertEqual(response['referencedlist'][2]['optional'], 'Optional')
+
+        referencedlistfieldtest_object = documents.ReferencedListFieldTest.objects.get(pk=self.resourcePK(self.fullURItoAbsoluteURI(mainresource_uri)))
+        self.assertEqual(referencedlistfieldtest_object.referencedlist[1].hidden, None)
 
         person2, person3 = response['referencedlist'][1:]
 

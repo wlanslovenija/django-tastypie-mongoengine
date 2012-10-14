@@ -257,3 +257,13 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
 
         return m2m_dehydrated
+
+    def resource_from_data(self, fk_resource, data, request=None, related_obj=None, related_name=None):
+        # We are ignoring any extra fields not present in resource
+        # We delete them because otherwise resource_from_data fail
+        # when using getattr and they are missing in resource
+        for k in data.keys():
+            if not hasattr(fk_resource, k):
+                del data[k]
+
+        return super(ReferencedListField, self).resource_from_data(fk_resource, data, request, related_obj, related_name)

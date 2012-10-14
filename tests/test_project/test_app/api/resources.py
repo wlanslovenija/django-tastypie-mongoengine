@@ -7,10 +7,12 @@ from test_project.test_app import documents
 class StrangePersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.StrangePerson.objects.all()
+        excludes = ('hidden',)
 
 class OtherStrangePersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.StrangePerson.objects.all()
+        excludes = ('hidden',)
 
 class PersonResource(resources.MongoEngineResource):
     class Meta:
@@ -19,6 +21,7 @@ class PersonResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
         ordering = ('name',)
+        excludes = ('hidden',)
         paginator_class = paginator.Paginator
 
         polymorphic = {
@@ -38,6 +41,7 @@ class OnlySubtypePersonResource(resources.MongoEngineResource):
         queryset = documents.Person.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+        excludes = ('hidden',)
 
         polymorphic = {
             'strangeperson': StrangePersonResource,
@@ -53,6 +57,7 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
         ordering = ('name',)
+        excludes = ('hidden',)
 
         polymorphic = {
             'person': 'self',
