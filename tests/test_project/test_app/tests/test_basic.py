@@ -1273,12 +1273,12 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['objects'][0]['resource_uri'], self.fullURItoAbsoluteURI(mainresource2_uri))
         self.assertEqual(response['objects'][1]['resource_uri'], self.fullURItoAbsoluteURI(mainresource1_uri))
 
-    def test_pagination(self):
+    def _test_pagination(self, uri, key, pattern):
         for i in range(100):
-            response = self.c.post(self.resourceListURI('person'), '{"name": "Person %s"}' % i, content_type='application/json')
+            response = self.c.post(uri, '{"%s": "%s"}' % (key, pattern % i), content_type='application/json')
             self.assertEqual(response.status_code, 201)
 
-        response = self.c.get(self.resourceListURI('person'), {'offset': '42', 'limit': 7})
+        response = self.c.get(uri, {'offset': '42', 'limit': 7})
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
@@ -1288,11 +1288,11 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(len(response['objects']), 7)
 
         for i, obj in enumerate(response['objects']):
-            self.assertEqual(obj['name'], "Person %s" % (42 + i))
+            self.assertEqual(obj[key], pattern % (42 + i))
 
         offset = response['objects'][0]['id']
 
-        response = self.c.get(self.resourceListURI('person'), {'offset': offset, 'limit': 7})
+        response = self.c.get(uri, {'offset': offset, 'limit': 7})
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
@@ -1302,9 +1302,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(len(response['objects']), 7)
 
         for i, obj in enumerate(response['objects']):
-            self.assertEqual(obj['name'], "Person %s" % (42 + i))
+            self.assertEqual(obj[key], pattern % (42 + i))
 
-        response = self.c.get(self.resourceListURI('person'), {'offset': offset, 'limit': -7})
+        response = self.c.get(uri, {'offset': offset, 'limit': -7})
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
 
@@ -1314,7 +1314,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(len(response['objects']), 7)
 
         for i, obj in enumerate(response['objects']):
-            self.assertEqual(obj['name'], "Person %s" % (42 - i))
+            self.assertEqual(obj[key], pattern % (42 - i))
+
+    def test_pagination(self):
+        self._test_pagination(self.resourceListURI('person'), 'name', 'Person %s')
 
     def test_embedded_in_embedded_doc(self):
         post = """
@@ -1395,3 +1398,5 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.delete(comment_uri)
         self.assertEqual(response.status_code, 204)
+
+        self._test_pagination(document_uri + 'comments/', 'content', 'Comment %s')

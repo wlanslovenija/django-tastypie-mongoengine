@@ -104,6 +104,10 @@ class ListQuerySet(datastructures.SortedDict):
     def __iter__(self):
         return self.itervalues()
 
+    def __reversed__(self):
+        for key in reversed(self.keyOrder):
+            yield self[key]
+
     def __getitem__(self, key):
         # Tastypie access object_list[0], so we pretend to be
         # a list here (order is same as our iteration order)

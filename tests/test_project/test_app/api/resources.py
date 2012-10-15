@@ -96,6 +96,7 @@ class EmbeddedCommentWithIDResource(resources.MongoEngineResource):
         object_class = documents.EmbeddedCommentWithID
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
 
 class DocumentWithIDResource(resources.MongoEngineResource):
     comments = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedCommentWithIDResource', attribute='comments', full=True, null=True)
