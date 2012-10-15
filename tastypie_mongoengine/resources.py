@@ -44,9 +44,9 @@ class ListQuerySet(datastructures.SortedDict):
 
         # pk optimization
         if 'pk' in kwargs:
-            pk = self._process_filter_value(kwargs.pop('pk'))
+            pk = unicode(self._process_filter_value(kwargs.pop('pk')))
             if pk in result:
-                result = ListQuerySet([(pk, result[pk])])
+                result = ListQuerySet([(unicode(pk), result[pk])])
             # Sometimes None is passed as a pk to not filter by pk
             elif pk is not None:
                 result = ListQuerySet()
@@ -57,7 +57,7 @@ class ListQuerySet(datastructures.SortedDict):
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
-                result = ListQuerySet([(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value])
+                result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
             except AttributeError, e:
                 raise tastypie_exceptions.InvalidFilterError(e)
 
@@ -95,7 +95,7 @@ class ListQuerySet(datastructures.SortedDict):
                 reverse = False
 
             try:
-                result = [(obj.pk, obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
+                result = [(unicode(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
             except (AttributeError, IndexError), e:
                 raise tastypie_exceptions.InvalidSortError(e)
 
@@ -113,6 +113,9 @@ class ListQuerySet(datastructures.SortedDict):
         elif isinstance(key, slice):
             return itertools.islice(self, key.start, key.stop, key.step)
         else:
+            # We could convert silently to unicode here, but it is
+            # better to check to find possible errors in program logic
+            assert isinstance(key, unicode), key
             return super(ListQuerySet, self).__getitem__(key)
 
 # Adapted from PEP 257
@@ -163,6 +166,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
+
         field_names = new_class.base_fields.keys()
 
         for field_name in field_names:
@@ -240,7 +244,7 @@ class MongoEngineResource(resources.ModelResource):
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<subresource_pk>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
@@ -670,6 +674,18 @@ class MongoEngineListResource(MongoEngineResource):
         self.instance = None
         self.parent = self._parent(api_name)
 
+        # Validate the fields and set primary key if needed
+        for field_name, field in self._meta.object_class._fields.iteritems():
+            if field.primary_key:
+                # Ensure only one primary key is set
+                current_pk = getattr(self._meta, 'id_field', None)
+                if current_pk and current_pk != field_name:
+                    raise ValueError('Cannot override primary key field')
+
+                # Set primary key
+                if not current_pk:
+                    self._meta.id_field = field_name
+
     def _safe_get(self, request, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
 
@@ -679,14 +695,12 @@ class MongoEngineListResource(MongoEngineResource):
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
 
     def dispatch(self, request_type, request, **kwargs):
-        index = None
-        if 'index' in kwargs:
-            index = kwargs.pop('index')
+        subresource_pk = kwargs.pop('subresource_pk', None)
 
         self.instance = self._safe_get(request, **kwargs)
 
-        # We use pk as index from now on
-        kwargs['pk'] = index
+        # We use subresource pk as pk from now on
+        kwargs['pk'] = subresource_pk
 
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
@@ -705,11 +719,22 @@ class MongoEngineListResource(MongoEngineResource):
         if not self.instance:
             return ListQuerySet()
 
-        def add_index(index, obj):
-            obj.pk = unicode(index)
-            return obj
+        pk_field = getattr(self._meta, 'id_field', None)
 
-        return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
+        if pk_field is not None:
+            object_list = []
+            for obj in getattr(self.instance, self.attribute):
+                pk = getattr(obj, pk_field)
+                obj.pk = fields.link_property(pk_field)
+                object_list.append((unicode(pk), obj))
+            return ListQuerySet(object_list)
+
+        else:
+            def add_index(index, obj):
+                obj.pk = index
+                return obj
+
+            return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, request=None, **kwargs):
         try:
@@ -721,9 +746,14 @@ class MongoEngineListResource(MongoEngineResource):
             bundle = self.full_hydrate(bundle)
 
             object_list = getattr(self.instance, self.attribute)
-            object_list.append(bundle.obj)
+            pk_field = getattr(self._meta, 'id_field', None)
 
-            bundle.obj.pk = unicode(len(object_list) - 1)
+            if pk_field is None:
+                bundle.obj.pk = len(object_list)
+            else:
+                bundle.obj.pk = fields.link_property(pk_field)
+
+            object_list.append(bundle.obj)
 
             self.save_related(bundle)
 
@@ -746,7 +776,17 @@ class MongoEngineListResource(MongoEngineResource):
             bundle = self.full_hydrate(bundle)
 
             object_list = getattr(self.instance, self.attribute)
-            object_list[int(bundle.obj.pk)] = bundle.obj
+            pk_field = getattr(self._meta, 'id_field', None)
+
+            if pk_field is None:
+                object_list[bundle.obj.pk] = bundle.obj
+            else:
+                for i, obj in enumerate(object_list):
+                    if getattr(obj, pk_field) == bundle.obj.pk:
+                        object_list[i] = bundle.obj
+                        break
+                else:
+                    raise IndexError("Embedded document with primary key '%s' not found." % bundle.obj.pk)
 
             self.save_related(bundle)
 
@@ -765,9 +805,21 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        getattr(self.instance, self.attribute).pop(int(obj.pk))
+        object_list = getattr(self.instance, self.attribute)
+        pk_field = getattr(self._meta, 'id_field', None)
+
+        if pk_field is None:
+            object_list.pop(obj.pk)
+        else:
+            for i, obj in enumerate(object_list):
+                if getattr(obj, pk_field) == obj.pk:
+                    del object_list[i]
+                    break
+            else:
+                raise IndexError("Embedded document with primary key '%s' not found." % obj.pk)
+
         self.instance.save()
 
     def get_resource_uri(self, bundle_or_obj):
@@ -779,7 +831,7 @@ class MongoEngineListResource(MongoEngineResource):
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute,
-            'index': obj.pk,
+            'subresource_pk': obj.pk,
         }
 
         if hasattr(obj, 'parent'):

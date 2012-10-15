@@ -1,5 +1,12 @@
 from tastypie import bundle as tastypie_bundle, exceptions, fields
 
+def link_property(property_name):
+    def get(self):
+        return getattr(self, property_name)
+    def set(self, value):
+        setattr(self, property_name, value)
+    return property(get, set)
+
 class ObjectId(fields.ApiField):
     """
     Field for representing ObjectId from MongoDB.
@@ -161,9 +168,15 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
 
         # the_m2ms is a list, not a queryset
         for index, m2m in enumerate(the_m2ms):
-            m2m.pk = index
             m2m.parent = bundle.obj
             m2m_resource = self.get_related_resource(m2m)
+
+            pk_field = getattr(m2m_resource._meta, 'id_field', None)
+            if pk_field is None:
+                m2m.pk = index
+            else:
+                m2m.pk = link_property(pk_field)
+
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
             self.m2m_resources.append(m2m_resource)
             m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))

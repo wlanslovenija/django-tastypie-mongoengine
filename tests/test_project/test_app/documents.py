@@ -34,6 +34,14 @@ class EmbeddedPost(mongoengine.EmbeddedDocument):
 class Board(mongoengine.Document):
     posts = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPost))
 
+class EmbeddedCommentWithID(mongoengine.EmbeddedDocument):
+    id = mongoengine.ObjectIdField(primary_key=True)
+    content = mongoengine.StringField(max_length=200, required=True)
+
+class DocumentWithID(mongoengine.Document):
+    title = mongoengine.StringField(max_length=200, required=True)
+    comments = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedCommentWithID))
+
 class EmbeddedListInEmbeddedDocTest(mongoengine.Document):
     post = mongoengine.EmbeddedDocumentField(EmbeddedPost)
 
