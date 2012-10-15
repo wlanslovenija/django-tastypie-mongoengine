@@ -1392,3 +1392,6 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.patch(document_uri + 'comments/abcd/', '{"content": "Content 2"}', content_type='application/json')
         self.assertEqual(response.status_code, 404)
+
+        response = self.c.delete(comment_uri)
+        self.assertEqual(response.status_code, 204)

@@ -9,7 +9,7 @@ from django.utils import datastructures
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
 import mongoengine
-from mongoengine import queryset
+from mongoengine import fields as mongoengine_fields, queryset
 
 from tastypie_mongoengine import fields
 
@@ -819,6 +819,11 @@ class MongoEngineListResource(MongoEngineResource):
                     break
             else:
                 raise IndexError("Embedded document with primary key '%s' not found." % obj.pk)
+
+        # Make sure to delete FileField files
+        for fieldname, field in obj._fields.items():
+            if isinstance(field, mongoengine_fields.FileField):
+                obj[fieldname].delete()
 
         self.instance.save()
 
