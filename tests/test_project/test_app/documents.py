@@ -1,5 +1,4 @@
 import bson
-
 import mongoengine
 
 class Person(mongoengine.Document):
