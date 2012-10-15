@@ -769,6 +769,15 @@ class MongoEngineListResource(MongoEngineResource):
         except mongoengine.ValidationError, e:
             raise exceptions.ValidationError(e.message)
 
+    def find_embedded_document(self, objects, pk_field, pk):
+        # TODO: Would it be faster to traverse in reversed direction? Because probably last elements are fetched more often in practice?
+        # TODO: Should we cache information about mappings between IDs and elements?
+        for i, obj in enumerate(objects):
+            if getattr(obj, pk_field) == pk:
+                return i
+
+        raise IndexError("Embedded document with primary key '%s' not found." % pk)
+
     def obj_update(self, bundle, request=None, **kwargs):
         try:
             if not bundle.obj or not getattr(bundle.obj, 'pk', None):
@@ -785,12 +794,7 @@ class MongoEngineListResource(MongoEngineResource):
             if pk_field is None:
                 object_list[bundle.obj.pk] = bundle.obj
             else:
-                for i, obj in enumerate(object_list):
-                    if getattr(obj, pk_field) == bundle.obj.pk:
-                        object_list[i] = bundle.obj
-                        break
-                else:
-                    raise IndexError("Embedded document with primary key '%s' not found." % bundle.obj.pk)
+                object_list[self.find_embedded_document(object_list, pk_field, bundle.obj.pk)] = bundle.obj
 
             self.save_related(bundle)
 
@@ -817,12 +821,7 @@ class MongoEngineListResource(MongoEngineResource):
         if pk_field is None:
             object_list.pop(obj.pk)
         else:
-            for i, obj in enumerate(object_list):
-                if getattr(obj, pk_field) == obj.pk:
-                    del object_list[i]
-                    break
-            else:
-                raise IndexError("Embedded document with primary key '%s' not found." % obj.pk)
+            object_list.pop(self.find_embedded_document(object_list, pk_field, obj.pk))
 
         # Make sure to delete FileField files
         for fieldname, field in obj._fields.items():
