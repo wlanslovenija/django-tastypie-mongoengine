@@ -94,13 +94,16 @@ class BoardResource(resources.MongoEngineResource):
 class EmbeddedCommentWithIDResource(resources.MongoEngineResource):
     class Meta:
         object_class = documents.EmbeddedCommentWithID
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
 
 class DocumentWithIDResource(resources.MongoEngineResource):
     comments = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedCommentWithIDResource', attribute='comments', full=True, null=True)
 
     class Meta:
-        object_class = documents.DocumentWithID
-        ordering = ('title', 'comments')
+        queryset = documents.DocumentWithID.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
 
 class EmbeddedListInEmbeddedDocTestResource(resources.MongoEngineResource):
     post = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedPostResource', attribute='post')

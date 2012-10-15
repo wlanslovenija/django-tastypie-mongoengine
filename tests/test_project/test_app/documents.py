@@ -1,3 +1,5 @@
+import bson
+
 import mongoengine
 
 class Person(mongoengine.Document):
@@ -35,7 +37,7 @@ class Board(mongoengine.Document):
     posts = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPost))
 
 class EmbeddedCommentWithID(mongoengine.EmbeddedDocument):
-    id = mongoengine.ObjectIdField(primary_key=True)
+    id = mongoengine.ObjectIdField(primary_key=True, default=lambda: bson.ObjectId())
     content = mongoengine.StringField(max_length=200, required=True)
 
 class DocumentWithID(mongoengine.Document):

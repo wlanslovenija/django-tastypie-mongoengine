@@ -175,7 +175,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
             if pk_field is None:
                 m2m.pk = index
             else:
-                m2m.pk = link_property(pk_field)
+                m2m.__class__.pk = link_property(pk_field)
 
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
             self.m2m_resources.append(m2m_resource)

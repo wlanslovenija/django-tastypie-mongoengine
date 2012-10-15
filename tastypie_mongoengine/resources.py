@@ -725,7 +725,7 @@ class MongoEngineListResource(MongoEngineResource):
             object_list = []
             for obj in getattr(self.instance, self.attribute):
                 pk = getattr(obj, pk_field)
-                obj.pk = fields.link_property(pk_field)
+                obj.__class__.pk = fields.link_property(pk_field)
                 object_list.append((unicode(pk), obj))
             return ListQuerySet(object_list)
 
@@ -751,7 +751,7 @@ class MongoEngineListResource(MongoEngineResource):
             if pk_field is None:
                 bundle.obj.pk = len(object_list)
             else:
-                bundle.obj.pk = fields.link_property(pk_field)
+                bundle.obj.__class__.pk = fields.link_property(pk_field)
 
             object_list.append(bundle.obj)
 

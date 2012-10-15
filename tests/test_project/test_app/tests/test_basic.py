@@ -642,6 +642,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
+        response = self.c.get(embedded4_uri)
+        self.assertEqual(response.status_code, 404)
+
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": "Foobar"}', content_type='application/json')
         self.assertRedirects(response, embedded4_uri, status_code=201)
 
@@ -1350,3 +1353,42 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(response['slug'], u'auto-slug-test')
+
+    def test_embedded_document_custom_id(self):
+        response = self.c.post(self.resourceListURI('documentwithid'), '{"title": "Main document"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        document_uri = response['location']
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['title'], 'Main document')
+        self.assertEqual(response['comments'], [])
+
+        response = self.c.post(document_uri + 'comments/', '{"content": "Content"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        comment_uri = response['location']
+
+        response = self.c.get(comment_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['content'], 'Content')
+
+        response = self.c.patch(comment_uri, '{"content": "Content 2"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(comment_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['content'], 'Content 2')
+
+        response = self.c.get(document_uri + 'comments/abcd/')
+        self.assertEqual(response.status_code, 404)
+
+        response = self.c.patch(document_uri + 'comments/abcd/', '{"content": "Content 2"}', content_type='application/json')
+        self.assertEqual(response.status_code, 404)
