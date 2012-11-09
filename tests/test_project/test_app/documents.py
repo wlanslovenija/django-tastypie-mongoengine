@@ -80,3 +80,18 @@ class AutoAllocationFieldTest(mongoengine.Document):
         if not self.slug:
             self.slug = slugify(self.name)
         super(AutoAllocationFieldTest, self).save(*args, **kwargs)
+
+
+class Exporter(mongoengine.Document):
+    name = mongoengine.StringField(required=True)
+
+
+class PipeExporterEmbedded(mongoengine.EmbeddedDocument):
+    name = mongoengine.StringField(required=True)
+    exporter = mongoengine.ReferenceField(Exporter, required=True)
+
+
+class Pipe(mongoengine.Document):
+    name = mongoengine.StringField(required=True, unique=True)
+    exporters = mongoengine.ListField(
+                    mongoengine.EmbeddedDocumentField(PipeExporterEmbedded))

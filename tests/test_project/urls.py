@@ -22,6 +22,8 @@ v1_api.register(resources.ReferencedListFieldNonFullTestResource())
 v1_api.register(resources.BooleanMapTestResource())
 v1_api.register(resources.EmbeddedListWithFlagFieldTestResource())
 v1_api.register(resources.AutoAllocationFieldTestResource())
+v1_api.register(resources.ExporterResource())
+v1_api.register(resources.PipeResource())
 
 urlpatterns = patterns('',
     url(r'^api/', include(v1_api.urls)),
