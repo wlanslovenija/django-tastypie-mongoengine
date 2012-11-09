@@ -1400,3 +1400,18 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 204)
 
         self._test_pagination(document_uri + 'comments/', 'content', 'Comment %s')
+
+    def test_embeddedlist_referencefield(self):
+        exporter_json = '{"name": "exporter_1"}'
+        response = self.c.post(self.resourceListURI('exporters'), exporter_json, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        exporter_uri = response['location']
+        response = self.c.get(exporter_uri)
+        self.assertEqual(response.status_code, 200)
+        exporter_document = json.loads(response.content)
+
+        pipe_json = '{"name": "pipe_1", "exporters": [{"exporter": {"name": "%s", "id": "%s", "resource_uri": "%s"}, "name": "exporter_embedded"}]}' % (exporter_document['name'], exporter_document['id'], exporter_document['resource_uri'])
+        response = self.c.post(self.resourceListURI('pipes'), pipe_json, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.content, '')
