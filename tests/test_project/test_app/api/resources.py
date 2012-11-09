@@ -192,3 +192,33 @@ class AutoAllocationFieldTestResource(resources.MongoEngineResource):
         queryset = documents.AutoAllocationFieldTest.objects.all()
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
+
+
+#Test for https://github.com/mitar/django-tastypie-mongoengine/issues/35
+
+
+class ExporterResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Exporter.objects.all()
+        resource_name = 'exporters'
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+
+class EmbeddedExporterListResource(resources.MongoEngineResource):
+    exporter = fields.ReferenceField(to='test_project.test_app.api.resources.ExporterResource',
+                                     attribute='exporter', full=True)
+
+    class Meta:
+        object_class = documents.PipeExporterEmbedded
+
+
+class PipeResource(resources.MongoEngineResource):
+    exporters = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedExporterListResource',
+                                         attribute='exporters', full=True, null=True)
+
+    class Meta:
+        queryset = documents.Pipe.objects.all()
+        resource_name = 'pipes'
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
