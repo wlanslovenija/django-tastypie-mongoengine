@@ -1402,16 +1402,27 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self._test_pagination(document_uri + 'comments/', 'content', 'Comment %s')
 
     def test_embeddedlist_referencefield(self):
-        exporter_json = '{"name": "exporter_1"}'
-        response = self.c.post(self.resourceListURI('exporters'), exporter_json, content_type='application/json')
+        response = self.c.post(self.resourceListURI('exporters'), '{"name": "exporter_1"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         exporter_uri = response['location']
+
         response = self.c.get(exporter_uri)
         self.assertEqual(response.status_code, 200)
-        exporter_document = json.loads(response.content)
+        response = json.loads(response.content)
 
-        pipe_json = '{"name": "pipe_1", "exporters": [{"exporter": {"name": "%s", "id": "%s", "resource_uri": "%s"}, "name": "exporter_embedded"}]}' % (exporter_document['name'], exporter_document['id'], exporter_document['resource_uri'])
+        self.assertEqual(response['name'], 'exporter_1')
+        self.assertEqual(response['resource_uri'], self.fullURItoAbsoluteURI(exporter_uri))
+
+        pipe_json = '{"name": "pipe_1", "exporters": [{"exporter": "%s", "name": "exporter_embedded"}]}' % response['resource_uri']
         response = self.c.post(self.resourceListURI('pipes'), pipe_json, content_type='application/json')
         self.assertEqual(response.status_code, 201)
-        self.assertEqual(response.content, '')
+
+        response = self.c.get(response['location'])
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'pipe_1')
+        self.assertEqual(len(response['exporters']), 1)
+        self.assertEqual(response['exporters'][0]['exporter']['name'], 'exporter_1')
+        self.assertEqual(response['exporters'][0]['name'], 'exporter_embedded')
