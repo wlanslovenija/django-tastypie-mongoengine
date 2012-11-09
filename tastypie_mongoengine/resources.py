@@ -221,6 +221,19 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             else:
                 seen_types.add(type_map[typ]._meta.object_class)
 
+        if new_class._meta.object_class:
+            # In MongoEngine 0.7.6+ embedded documents do not have exceptions anymore,
+            # but this prevents are from reusing existing Tastypie code
+
+            exceptions_to_merge = [exc for exc in (queryset.DoesNotExist, queryset.MultipleObjectsReturned) if not hasattr(new_class._meta.object_class, exc.__name__)]
+            module = new_class._meta.object_class.__module__
+            for exc in exceptions_to_merge:
+                name = exc.__name__
+                parents = tuple(getattr(base, name) for base in new_class._meta.object_class._get_bases(bases) if hasattr(base, name)) or (exc,)
+                # Create new exception and set to new_class
+                exception = type(name, parents, {'__module__': module})
+                setattr(new_class._meta.object_class, name, exception)
+
         return new_class
 
 class MongoEngineResource(resources.ModelResource):
