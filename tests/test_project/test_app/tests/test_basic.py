@@ -1425,4 +1425,19 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['name'], 'pipe_1')
         self.assertEqual(len(response['exporters']), 1)
         self.assertEqual(response['exporters'][0]['exporter']['name'], 'exporter_1')
+        self.assertEqual(response['exporters'][0]['exporter']['resource_uri'], self.fullURItoAbsoluteURI(exporter_uri))
+        self.assertEqual(response['exporters'][0]['name'], 'exporter_embedded')
+
+        pipe_json = '{"name": "pipe_2", "exporters": [{"exporter": {"name": "exporter_1"}, "name": "exporter_embedded"}]}'
+        response = self.c.post(self.resourceListURI('pipes'), pipe_json, content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.c.get(response['location'])
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'pipe_2')
+        self.assertEqual(len(response['exporters']), 1)
+        self.assertEqual(response['exporters'][0]['exporter']['name'], 'exporter_1')
+        self.assertEqual(response['exporters'][0]['exporter']['resource_uri'], self.fullURItoAbsoluteURI(exporter_uri))
         self.assertEqual(response['exporters'][0]['name'], 'exporter_embedded')
