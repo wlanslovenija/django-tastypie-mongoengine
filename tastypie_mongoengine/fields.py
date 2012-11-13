@@ -105,7 +105,10 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
         }
 
     def hydrate(self, bundle):
-        return super(EmbeddedDocumentField, self).hydrate(bundle).obj
+        bundle = super(EmbeddedDocumentField, self).hydrate(bundle)
+        if not bundle:
+            return bundle
+        return bundle.obj
 
 class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     """
