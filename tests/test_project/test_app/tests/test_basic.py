@@ -305,6 +305,15 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['person']['name'], 'Person 2')
         self.assertEqual(response['person']['optional'], 'Optional')
 
+        response = self.c.put(embeddeddocumentfieldtest_uri, '{"customer": null}', content_type='application/json')
+        self.assertEqual(response.status_code, 204)
+
+        response = self.c.get(embeddeddocumentfieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['customer'], None)
+
         response = self.c.put(embeddeddocumentfieldtest_uri, '{"customer": {"name": "Embedded person 1a"}}', content_type='application/json')
         self.assertEqual(response.status_code, 204)
 
