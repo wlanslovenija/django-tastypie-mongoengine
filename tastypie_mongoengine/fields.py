@@ -23,6 +23,14 @@ class ApiNameMixin(object):
             return self._resource._meta.api_name
         return None
 
+    def get_related_resource(self, related_instance):
+        related_resource = super(ApiNameMixin, self).get_related_resource(related_instance)
+        type_map = getattr(related_resource._meta, 'polymorphic', {})
+        if type_map and getattr(related_resource._meta, 'prefer_related_resource_name', False):
+            resource = related_resource._get_resource_from_class(type_map, related_instance.__class__)
+            related_resource._meta.resource_name = resource._meta.resource_name
+        return related_resource
+
 class BuildRelatedMixin(ApiNameMixin):
     def build_related_resource(self, value, **kwargs):
         # A version of build_related_resource which allows only dictionary-like data

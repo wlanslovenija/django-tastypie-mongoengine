@@ -13,6 +13,23 @@ class Person(mongoengine.Document):
 class StrangePerson(Person):
     strange = mongoengine.StringField(max_length=100, required=True)
 
+
+class Contact(mongoengine.Document):
+    meta = {
+        'allow_inheritance': True,
+    }
+
+    phone = mongoengine.StringField(max_length=16, required=True)
+
+class Individual(Contact):
+    name = mongoengine.StringField(max_length=200, required=True)
+
+class Company(Contact):
+    corporate_name = mongoengine.StringField(max_length=200, required=True)
+
+class ContactGroup(mongoengine.Document):
+    contacts = mongoengine.ListField(mongoengine.ReferenceField(Contact, required=True))
+
 class EmbeddedPerson(mongoengine.EmbeddedDocument):
     name = mongoengine.StringField(max_length=200, required=True)
     optional = mongoengine.StringField(max_length=200, required=False)

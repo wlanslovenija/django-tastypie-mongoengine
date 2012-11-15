@@ -1091,6 +1091,37 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1"}', content_type='application/json')
         self.assertContains(response, 'Invalid object type', status_code=400)
 
+    def test_polymorphic_with_related_resource_names(self):
+        response = self.c.post(self.resourceListURI('individual'), '{"name": "Individual 1", "phone": "000-000000"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        individual_uri = self.fullURItoAbsoluteURI(response['location'])
+
+        response = self.c.post(self.resourceListURI('company'), '{"corporate_name": "Company 1", "phone": "000-000000"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        company_uri = self.fullURItoAbsoluteURI(response['location'])
+
+        response = self.c.get(self.resourceListURI('contact'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 2)
+        for obj in response['objects']:
+            if obj['resource_type'] == 'individual':
+                self.assertEqual(obj['resource_uri'], individual_uri)
+            else:
+                self.assertEqual(obj['resource_uri'], company_uri)
+
+        response = self.c.post(self.resourceListURI('contactgroup'), '{"contacts": ["%s", "%s"]}' % (individual_uri, company_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.c.get(self.resourceListURI('contactgroup'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 1)
+        self.assertIn(individual_uri, response['objects'][0]['contacts'])
+        self.assertIn(company_uri, response['objects'][0]['contacts'])
+
     def test_polymorphic_duplicate_class(self):
         with self.assertRaises(exceptions.ImproperlyConfigured):
             class DuplicateSubtypePersonResource(tastypie_mongoengine_resources.MongoEngineResource):
