@@ -416,7 +416,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(customer2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
-        
+
         self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
         self.assertEqual(response['person']['optional'], 'Optional PATCHED')
 
@@ -1121,6 +1121,20 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['meta']['total_count'], 1)
         self.assertIn(individual_uri, response['objects'][0]['contacts'])
         self.assertIn(company_uri, response['objects'][0]['contacts'])
+
+        # Test fallback
+        # Because the resource is not registered, it should be added on the mongoengine layer
+        unreg_company = resources.UnregisteredCompanyResource()._meta.object_class(corporate_name='Unreg company', phone='000-000000')
+        unreg_company.save()
+
+        response = self.c.get(self.resourceListURI('contact'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 3)
+        self.assertEqual(response['objects'][2]['resource_uri'], self.resourceDetailURI('company', unreg_company.id))
+        self.assertEqual(response['objects'][2]['resource_type'], 'unregisteredcompany')
+        self.assertEqual(response['objects'][2]['corporate_name'], 'Unreg company')
 
     def test_polymorphic_duplicate_class(self):
         with self.assertRaises(exceptions.ImproperlyConfigured):

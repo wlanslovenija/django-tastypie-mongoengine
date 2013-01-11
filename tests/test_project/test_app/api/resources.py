@@ -78,6 +78,13 @@ class CompanyResource(resources.MongoEngineResource):
         authorization = tastypie_authorization.Authorization()
         paginator_class = paginator.Paginator
 
+class UnregisteredCompanyResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.UnregisteredCompany.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
 class ContactResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Contact.objects.all()
@@ -88,6 +95,7 @@ class ContactResource(resources.MongoEngineResource):
         polymorphic = {
             'individual': IndividualResource,
             'company': CompanyResource,
+            'unregisteredcompany': UnregisteredCompanyResource,
         }
 
 class ContactGroupResource(resources.MongoEngineResource):

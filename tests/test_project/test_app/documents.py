@@ -27,6 +27,9 @@ class Individual(Contact):
 class Company(Contact):
     corporate_name = mongoengine.StringField(max_length=200, required=True)
 
+class UnregisteredCompany(Company):
+    pass
+
 class ContactGroup(mongoengine.Document):
     contacts = mongoengine.ListField(mongoengine.ReferenceField(Contact, required=True))
 
