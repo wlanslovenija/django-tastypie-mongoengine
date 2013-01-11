@@ -220,7 +220,7 @@ class BlankableEmbeddedResource(resources.MongoEngineResource):
         object_class = documents.BlankableEmbedded
 
 class BlankableParentResource(resources.MongoEngineResource):
-    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded')
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True)
 
     class Meta:
         queryset = documents.BlankableParent.objects.all()
@@ -232,7 +232,7 @@ class TimezonedDateTimeResource(resources.MongoEngineResource):
         object_class = documents.TimezonedDateTime
 
 class ReadonlyParentResource(resources.MongoEngineResource):
-    tzdt = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.TimezonedDateTimeResource', attribute='tzdt')
+    tzdt = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.TimezonedDateTimeResource', attribute='tzdt', readonly=True)
 
     class Meta:
         queryset = documents.ReadonlyParent.objects.all()
