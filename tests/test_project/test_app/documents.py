@@ -1,5 +1,6 @@
 import bson
 import mongoengine
+from datetime import datetime
 
 class Person(mongoengine.Document):
     meta = {
@@ -91,3 +92,18 @@ class PipeExporterEmbedded(mongoengine.EmbeddedDocument):
 class Pipe(mongoengine.Document):
     name = mongoengine.StringField(required=True, unique=True)
     exporters = mongoengine.ListField(mongoengine.EmbeddedDocumentField(PipeExporterEmbedded))
+
+class BlankableEmbedded(mongoengine.EmbeddedDocument):
+    name = mongoengine.StringField(required=True, default='A blank name')
+    description = mongoengine.StringField()
+
+class BlankableParent(mongoengine.Document):
+    embedded = mongoengine.EmbeddedDocumentField(BlankableEmbedded, required=True, default=BlankableEmbedded())
+
+class TimezonedDateTime(mongoengine.EmbeddedDocument):
+    dt = mongoengine.DateTimeField(required=True)
+    tz = mongoengine.StringField(required=True)
+
+class ReadonlyParent(mongoengine.Document):
+    name = mongoengine.StringField(required=True)
+    tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
