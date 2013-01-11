@@ -84,7 +84,7 @@ class ContactResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
 
-        prefer_related_resource_name = True
+        prefer_polymorphic_resource_uri = True
         polymorphic = {
             'individual': IndividualResource,
             'company': CompanyResource,

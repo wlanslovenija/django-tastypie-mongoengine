@@ -310,7 +310,7 @@ class MongoEngineResource(resources.ModelResource):
             self._meta.queryset = resource._meta.queryset
             self.base_fields = resource.base_fields.copy()
             self.fields = resource.fields.copy()
-            if getattr(self._meta, 'prefer_related_resource_name', False):
+            if getattr(self._meta, 'prefer_polymorphic_resource_uri', False):
                 self._meta.resource_name = resource._meta.resource_name
             if getattr(self._meta, 'include_resource_type', True):
                 self.base_fields['resource_type'] = base_fields['resource_type']
