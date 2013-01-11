@@ -1450,3 +1450,29 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['exporters'][0]['exporter']['name'], 'exporter_1')
         self.assertEqual(response['exporters'][0]['exporter']['resource_uri'], self.fullURItoAbsoluteURI(exporter_uri))
         self.assertEqual(response['exporters'][0]['name'], 'exporter_embedded')
+
+    def test_blankable_embedded(self):
+        response = self.c.post(self.resourceListURI('blankableparent'), '{}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        document_uri = response['location']
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embedded']['name'], 'A blank name')
+        self.assertEqual(response['embedded']['description'], None)
+
+    def test_readonly_embedded(self):
+        response = self.c.post(self.resourceListURI('readonlyparent'), '{"name": "A readonly embedded test"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        document_uri = response['location']
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['tzdt']['dt'], '2012-12-12T12:12:12')
+        self.assertEqual(response['tzdt']['tz'], 'UTC')
