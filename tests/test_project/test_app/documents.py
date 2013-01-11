@@ -1,6 +1,6 @@
 import bson
 import mongoengine
-from datetime import datetime
+import datetime
 
 class Person(mongoengine.Document):
     meta = {
@@ -106,4 +106,4 @@ class TimezonedDateTime(mongoengine.EmbeddedDocument):
 
 class ReadonlyParent(mongoengine.Document):
     name = mongoengine.StringField(required=True)
-    tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
+    tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime.datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
