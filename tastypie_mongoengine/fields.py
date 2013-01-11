@@ -76,7 +76,7 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
     is_related = False
     dehydrated_type = 'embedded'
 
-    def __init__(self, embedded, attribute, null=False, help_text=None):
+    def __init__(self, embedded, attribute, null=False, blank=False, readonly=False, help_text=None):
         '''
         The ``embedded`` argument should point to a ``Resource`` class, not
         to a ``document``. Required.
@@ -86,6 +86,8 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
             to=embedded,
             attribute=attribute,
             null=null,
+            blank=blank,
+            readonly=readonly,
             full=True,
         )
 

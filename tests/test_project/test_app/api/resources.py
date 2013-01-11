@@ -214,3 +214,27 @@ class PipeResource(resources.MongoEngineResource):
         resource_name = 'pipes'
         allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = tastypie_authorization.Authorization()
+
+class BlankableEmbeddedResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.BlankableEmbedded
+
+class BlankableParentResource(resources.MongoEngineResource):
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True)
+
+    class Meta:
+        queryset = documents.BlankableParent.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class TimezonedDateTimeResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.TimezonedDateTime
+
+class ReadonlyParentResource(resources.MongoEngineResource):
+    tzdt = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.TimezonedDateTimeResource', attribute='tzdt', readonly=True)
+
+    class Meta:
+        queryset = documents.ReadonlyParent.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
