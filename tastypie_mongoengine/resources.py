@@ -395,17 +395,17 @@ class MongoEngineResource(resources.ModelResource):
 
         return self._get_type_from_class(type_map, bundle.obj.__class__)
 
-    def full_dehydrate(self, bundle):
+    def full_dehydrate(self, bundle, for_list=False):
         type_map = getattr(self._meta, 'polymorphic', {})
         if not type_map:
-            return super(MongoEngineResource, self).full_dehydrate(bundle)
+            return super(MongoEngineResource, self).full_dehydrate(bundle, for_list)
 
         # Optimization
         if self._meta.object_class is bundle.obj.__class__:
-            return super(MongoEngineResource, self).full_dehydrate(bundle)
+            return super(MongoEngineResource, self).full_dehydrate(bundle, for_list)
 
         resource = self._get_resource_from_class(type_map, bundle.obj.__class__)(self._meta.api_name)
-        return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle))
+        return self._wrap_polymorphic(resource, lambda: super(MongoEngineResource, self).full_dehydrate(bundle, for_list))
 
     def full_hydrate(self, bundle):
         # When updating objects, we want to force only updates of the same type, and object
@@ -493,10 +493,10 @@ class MongoEngineResource(resources.ModelResource):
 
         return data
 
-    def obj_get(self, request=None, **kwargs):
+    def obj_get(self, bundle, **kwargs):
         # MongoEngine exceptions are separate from Django exceptions, we combine them here
         try:
-            return super(MongoEngineResource, self).obj_get(request, **kwargs)
+            return super(MongoEngineResource, self).obj_get(bundle=bundle, **kwargs)
         except self._meta.object_class.DoesNotExist, e:
             exp = models_base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
             raise exp(*e.args)
@@ -513,45 +513,42 @@ class MongoEngineResource(resources.ModelResource):
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
-    def obj_create(self, bundle, request=None, **kwargs):
-        try:
-            self._reset_collection()
-            return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
-        except mongoengine.ValidationError, e:
-            raise exceptions.ValidationError(e.message)
+    def obj_create(self, bundle, **kwargs):
+        self._reset_collection()
+        return super(MongoEngineResource, self).obj_create(bundle, **kwargs)
 
     # TODO: Use skip_errors?
-    def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
-        try:
-            self._reset_collection()
+    def obj_update(self, bundle, skip_errors=False, **kwargs):
+        self._reset_collection()
 
-            if not bundle.obj or not getattr(bundle.obj, 'pk', None):
-                try:
-                    bundle.obj = self.obj_get(request, **kwargs)
-                except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                    raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+            try:
+                bundle.obj = self.obj_get(bundle=bundle, **kwargs)
+            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-            bundle = self.full_hydrate(bundle)
+        self.authorized_update_detail(self.get_object_list(bundle.request), bundle)
+        bundle = self.full_hydrate(bundle)
+        return self.save(bundle, skip_errors=skip_errors)
 
-            self.save_related(bundle)
-
-            bundle.obj.save()
-
-            m2m_bundle = self.hydrate_m2m(bundle)
-            self.save_m2m(m2m_bundle)
-            return bundle
-        except mongoengine.ValidationError, e:
-            raise exceptions.ValidationError(e.message)
-
-    def obj_delete(self, request=None, **kwargs):
+    def obj_delete(self, bundle, **kwargs):
         self._reset_collection()
 
         # MongoEngine exceptions are separate from Django exceptions and Tastypie
         # expects Django exceptions, so we catch it here ourselves and raise NotFound
         try:
-            return super(MongoEngineResource, self).obj_delete(request, **kwargs)
+            return super(MongoEngineResource, self).obj_delete(bundle, **kwargs)
         except queryset.DoesNotExist:
             raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+
+    def create_identifier(self, obj):
+        return unicode(obj.pk)
+
+    def save(self, bundle, skip_errors=False):
+        try:
+            return super(MongoEngineResource, self).save(bundle, skip_errors)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def save_m2m(self, bundle):
         # Our related documents are not stored in a queryset, but a list,
@@ -689,6 +686,28 @@ class MongoEngineResource(resources.ModelResource):
 
         return final_fields
 
+        raise IndexError("Embedded document with primary key '%s' not found." % pk)
+
+    def update_in_place(self, request, original_bundle, new_data):
+        """
+        Update the object in original_bundle in-place using new_data.
+        """
+        from tastypie.utils import dict_strip_unicode_keys
+        original_bundle.data.update(**dict_strip_unicode_keys(new_data))
+
+        # Now we've got a bundle with the new data sitting in it and we're
+        # we're basically in the same spot as a PUT request. SO the rest of this
+        # function is cribbed from put_detail.
+        self.alter_deserialized_detail_data(request, original_bundle.data)
+        
+        # Removed request from kwargs, breaking obj_get filter, currently present
+        # in tastypie. See https://github.com/toastdriven/django-tastypie/issues/824.
+        kwargs = {
+            self._meta.detail_uri_name: self.get_bundle_detail_data(original_bundle),
+        }
+        return self.obj_update(bundle=original_bundle, **kwargs)
+
+
 class MongoEngineListResource(MongoEngineResource):
     """
     A MongoEngine resource used in conjunction with EmbeddedListField.
@@ -712,18 +731,19 @@ class MongoEngineListResource(MongoEngineResource):
                 if not current_pk:
                     self._meta.id_field = field_name
 
-    def _safe_get(self, request, **kwargs):
+    def _safe_get(self, bundle, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
 
         try:
-            return self.parent.cached_obj_get(request=request, **filters)
+            return self.parent.cached_obj_get(bundle=bundle, **filters)
         except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
 
     def dispatch(self, request_type, request, **kwargs):
         subresource_pk = kwargs.pop('subresource_pk', None)
 
-        self.instance = self._safe_get(request, **kwargs)
+        bundle = self.build_bundle(request=request)
+        self.instance = self._safe_get(bundle, **kwargs)
 
         # We use subresource pk as pk from now on
         kwargs['pk'] = subresource_pk
@@ -762,7 +782,7 @@ class MongoEngineListResource(MongoEngineResource):
 
             return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
-    def obj_create(self, bundle, request=None, **kwargs):
+    def obj_create(self, bundle, **kwargs):
         try:
             bundle.obj = self._meta.object_class()
 
@@ -798,14 +818,12 @@ class MongoEngineListResource(MongoEngineResource):
             if getattr(obj, pk_field) == pk:
                 return i
 
-        raise IndexError("Embedded document with primary key '%s' not found." % pk)
-
     # TODO: Use skip_errors?
-    def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
+    def obj_update(self, bundle, skip_errors=False, **kwargs):
         try:
             if not bundle.obj or not getattr(bundle.obj, 'pk', None):
                 try:
-                    bundle.obj = self.obj_get(request, **kwargs)
+                    bundle.obj = self.obj_get(bundle=bundle, **kwargs)
                 except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
                     raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
@@ -829,12 +847,12 @@ class MongoEngineListResource(MongoEngineResource):
         except mongoengine.ValidationError, e:
             raise exceptions.ValidationError(e.message)
 
-    def obj_delete(self, request=None, **kwargs):
+    def obj_delete(self, bundle, **kwargs):
         obj = kwargs.pop('_obj', None)
 
         if not getattr(obj, 'pk', None):
             try:
-                obj = self.obj_get(request, **kwargs)
+                obj = self.obj_get(bundle=bundle, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
                 raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 

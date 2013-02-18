@@ -61,7 +61,7 @@ class ReferenceField(ApiNameMixin, fields.ToOneField):
     def build_schema(self):
         resource = self.to_class(self.get_api_name())
         return {
-            'reference_uri': resource.get_resource_list_uri(),
+            'reference_uri': resource.get_resource_uri(),
             'reference_schema': resource._build_reverse_url('api_get_schema', kwargs={
                 'api_name': self.get_api_name(),
                 'resource_name': resource._meta.resource_name,
@@ -228,7 +228,7 @@ class ReferencedListField(ApiNameMixin, fields.ToManyField):
     def build_schema(self):
         resource = self.to_class(self.get_api_name())
         return {
-            'reference_uri': resource.get_resource_list_uri(),
+            'reference_uri': resource.get_resource_uri(),
             'reference_schema': resource._build_reverse_url('api_get_schema', kwargs={
                 'api_name': self.get_api_name(),
                 'resource_name': resource._meta.resource_name,
