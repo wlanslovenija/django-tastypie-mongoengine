@@ -43,7 +43,7 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
 
     def setup_databases(self, **kwargs):
         connection.disconnect()
-        connect(self.db_name)
+        connect(self.db_name, **getattr(settings, 'MONGO_DATABASE_OPTIONS', {}))
 
     def teardown_databases(self, old_config, **kwargs):
         connection.get_connection().drop_database(self.db_name)
