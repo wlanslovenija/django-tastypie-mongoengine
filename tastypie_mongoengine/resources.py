@@ -9,9 +9,7 @@ from django.utils import datastructures
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
 import mongoengine
-from mongoengine import queryset
-
-import bson
+from mongoengine import fields as mongoengine_fields, queryset
 
 from tastypie_mongoengine import fields
 
@@ -50,9 +48,9 @@ class ListQuerySet(datastructures.SortedDict):
 
         # pk optimization
         if 'pk' in kwargs:
-            pk = self._process_filter_value(kwargs.pop('pk'))
+            pk = unicode(self._process_filter_value(kwargs.pop('pk')))
             if pk in result:
-                result = ListQuerySet([(pk, result[pk])])
+                result = ListQuerySet([(unicode(pk), result[pk])])
             # Sometimes None is passed as a pk to not filter by pk
             elif pk is not None:
                 result = ListQuerySet()
@@ -63,7 +61,7 @@ class ListQuerySet(datastructures.SortedDict):
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
-                result = ListQuerySet([(obj.pk, obj) for obj in result.itervalues() if getattr(obj, field) == value])
+                result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
             except AttributeError, e:
                 raise tastypie_exceptions.InvalidFilterError(e)
 
@@ -101,7 +99,7 @@ class ListQuerySet(datastructures.SortedDict):
                 reverse = False
 
             try:
-                result = [(obj.pk, obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
+                result = [(unicode(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
             except (AttributeError, IndexError), e:
                 raise tastypie_exceptions.InvalidSortError(e)
 
@@ -109,6 +107,10 @@ class ListQuerySet(datastructures.SortedDict):
 
     def __iter__(self):
         return self.itervalues()
+
+    def __reversed__(self):
+        for key in reversed(self.keyOrder):
+            yield self[key]
 
     def __getitem__(self, key):
         # Tastypie access object_list[0], so we pretend to be
@@ -119,6 +121,9 @@ class ListQuerySet(datastructures.SortedDict):
         elif isinstance(key, slice):
             return itertools.islice(self, key.start, key.stop, key.step)
         else:
+            # We could convert silently to unicode here, but it is
+            # better to check to find possible errors in program logic
+            assert isinstance(key, unicode), key
             return super(ListQuerySet, self).__getitem__(key)
 
 # Adapted from PEP 257
@@ -173,6 +178,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
+
         field_names = new_class.base_fields.keys()
 
         for field_name in field_names:
@@ -223,6 +229,19 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             else:
                 seen_types.add(type_map[typ]._meta.object_class)
 
+        if new_class._meta.object_class:
+            # In MongoEngine 0.7.6+ embedded documents do not have exceptions anymore,
+            # but this prevents are from reusing existing Tastypie code
+
+            exceptions_to_merge = [exc for exc in (queryset.DoesNotExist, queryset.MultipleObjectsReturned) if not hasattr(new_class._meta.object_class, exc.__name__)]
+            module = new_class._meta.object_class.__module__
+            for exc in exceptions_to_merge:
+                name = exc.__name__
+                parents = tuple(getattr(base, name) for base in new_class._meta.object_class._get_bases(bases) if hasattr(base, name)) or (exc,)
+                # Create new exception and set to new_class
+                exception = type(name, parents, {'__module__': module})
+                setattr(new_class._meta.object_class, name, exception)
+
         return new_class
 
 class MongoEngineResource(resources.ModelResource):
@@ -250,7 +269,7 @@ class MongoEngineResource(resources.ModelResource):
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<index>\d+)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<subresource_pk>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
@@ -401,13 +420,11 @@ class MongoEngineResource(resources.ModelResource):
         # reliable as it does checks in an inconsistent way
         # (https://github.com/toastdriven/django-tastypie/issues/491)
         for field_object in self.fields.itervalues():
-            if field_object.readonly:
+            if field_object.readonly or getattr(field_object, '_primary_key', False):
                 continue
 
             if not field_object.attribute:
                 continue
-
-            value = NOT_HYDRATED
 
             # Tastypie also skips setting value if it is None, but this means
             # updates to None are ignored: this is not good as it hides invalid
@@ -417,11 +434,13 @@ class MongoEngineResource(resources.ModelResource):
             # (https://github.com/toastdriven/django-tastypie/issues/492)
             # We hydrate field again only if existing value is not None
             if getattr(bundle.obj, field_object.attribute, None) is not None:
+                value = NOT_HYDRATED
+
                 # Tastypie also ignores missing fields in PUT,
                 # so we check for missing field here
                 # (https://github.com/toastdriven/django-tastypie/issues/496)
                 if field_object.instance_name not in bundle.data:
-                    if field_object._default is not tastypie_fields.NOT_PROVIDED:
+                    if field_object.has_default():
                         if callable(field_object.default):
                             value = field_object.default()
                         else:
@@ -431,38 +450,15 @@ class MongoEngineResource(resources.ModelResource):
                 else:
                     value = field_object.hydrate(bundle)
                 if value is None:
-                    # This does not really set None in a way that calling
-                    # getattr on bundle.obj would return None later on
-                    # This is how MongoEngine is implemented
-                    # (https://github.com/hmarr/mongoengine/issues/505)
                     setattr(bundle.obj, field_object.attribute, None)
 
             if field_object.blank or field_object.null:
                 continue
 
             # We are just trying to fix Tastypie here, for other "null" values
-            # like [] and {} we leave to validate bellow to catch them
-            if getattr(bundle.obj, field_object.attribute, None) is None or value is None: # We also have to check value, read comment above
+            # like [] and {} we leave to MongoEngine validate to catch them
+            if getattr(bundle.obj, field_object.attribute, None) is None:
                 raise tastypie_exceptions.ApiFieldError("The '%s' field has no data and doesn't allow a default or null value." % field_object.instance_name)
-
-        # We validate MongoEngine object here so that possible exception
-        # is thrown before going to MongoEngine layer, wrapped in
-        # Django exception so that it is handled properly
-        # is_valid method is too early as bundle.obj is not yet ready then
-        try:
-            # Validation fails for unsaved related resources, so
-            # we fake pk here temporary, for validation code to
-            # assume resource is saved
-            pk = getattr(bundle.obj, 'pk', None)
-            try:
-                if pk is None:
-                    bundle.obj.pk = bson.ObjectId()
-                bundle.obj.validate()
-            finally:
-                if pk is None:
-                    bundle.obj.pk = pk
-        except mongoengine.ValidationError, e:
-            raise exceptions.ValidationError(e.message)
 
         return bundle
 
@@ -473,7 +469,7 @@ class MongoEngineResource(resources.ModelResource):
             # We process ListField specially here (and not use field's
             # build_schema) so that Tastypie's ListField can be used
             if isinstance(field_object, tastypie_fields.ListField):
-                if field_object.field:
+                if getattr(field_object, 'field', None):
                     data['fields'][field_name]['content'] = {}
 
                     field_type = field_object.field.__class__.__name__.lower()
@@ -518,28 +514,34 @@ class MongoEngineResource(resources.ModelResource):
             raise exp(*e.args)
 
     def obj_create(self, bundle, request=None, **kwargs):
-        self._reset_collection()
-        return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+        try:
+            self._reset_collection()
+            return super(MongoEngineResource, self).obj_create(bundle, request, **kwargs)
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     # TODO: Use skip_errors?
     def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
-        self._reset_collection()
+        try:
+            self._reset_collection()
 
-        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
-            try:
-                bundle.obj = self.obj_get(request, **kwargs)
-            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+            if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+                try:
+                    bundle.obj = self.obj_get(request, **kwargs)
+                except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                    raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        self.save_related(bundle)
+            self.save_related(bundle)
 
-        bundle.obj.save()
+            bundle.obj.save()
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_delete(self, request=None, **kwargs):
         self._reset_collection()
@@ -550,6 +552,29 @@ class MongoEngineResource(resources.ModelResource):
             return super(MongoEngineResource, self).obj_delete(request, **kwargs)
         except queryset.DoesNotExist:
             raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+
+    def save_m2m(self, bundle):
+        # Our related documents are not stored in a queryset, but a list,
+        # so we have to manually build a list, set it, and save
+
+        for field_name, field_object in self.fields.items():
+            if not getattr(field_object, 'is_m2m', False):
+                continue
+
+            if not field_object.attribute:
+                continue
+
+            if field_object.readonly:
+                continue
+
+            related_objs = []
+
+            for related_bundle in bundle.data[field_name]:
+                related_bundle.obj.save()
+                related_objs.append(related_bundle.obj)
+
+            setattr(bundle.obj, field_object.attribute, related_objs)
+            bundle.obj.save()
 
     @classmethod
     def api_field_from_mongo_field(cls, f, default=tastypie_fields.CharField):
@@ -584,6 +609,15 @@ class MongoEngineResource(resources.ModelResource):
         return result
 
     @classmethod
+    def api_field_options(cls, name, field, options):
+        """
+        Allows dynamic change of field options when creating resource
+        fields from document fields automatically.
+        """
+
+        return options
+
+    @classmethod
     def get_fields(cls, fields=None, excludes=None):
         """
         Given any explicit fields to include and fields to exclude, add
@@ -616,10 +650,12 @@ class MongoEngineResource(resources.ModelResource):
 
             api_field_class = cls.api_field_from_mongo_field(f)
 
+            primary_key = f.primary_key or name == getattr(cls._meta, 'id_field', 'id')
+
             kwargs = {
                 'attribute': name,
-                'unique': f.unique,
-                'null': not f.required,
+                'unique': f.unique or primary_key,
+                'null': not f.required and not primary_key,
                 'help_text': f.help_text,
             }
 
@@ -640,8 +676,11 @@ class MongoEngineResource(resources.ModelResource):
                     if f.default is not None: # If not MongoEngine's default
                         kwargs['default'] = f.default
 
+            kwargs = cls.api_field_options(name, f, kwargs)
+
             final_fields[name] = api_field_class(**kwargs)
             final_fields[name].instance_name = name
+            final_fields[name]._primary_key = primary_key
 
             # We store MongoEngine field so that schema output can show
             # to which content the list is limited to (if any)
@@ -661,6 +700,18 @@ class MongoEngineListResource(MongoEngineResource):
         self.instance = None
         self.parent = self._parent(api_name)
 
+        # Validate the fields and set primary key if needed
+        for field_name, field in self._meta.object_class._fields.iteritems():
+            if field.primary_key:
+                # Ensure only one primary key is set
+                current_pk = getattr(self._meta, 'id_field', None)
+                if current_pk and current_pk != field_name:
+                    raise ValueError('Cannot override primary key field')
+
+                # Set primary key
+                if not current_pk:
+                    self._meta.id_field = field_name
+
     def _safe_get(self, request, **kwargs):
         filters = self.remove_api_resource_names(kwargs)
 
@@ -670,14 +721,12 @@ class MongoEngineListResource(MongoEngineResource):
             raise tastypie_exceptions.ImmediateHttpResponse(response=http.HttpNotFound())
 
     def dispatch(self, request_type, request, **kwargs):
-        index = None
-        if 'index' in kwargs:
-            index = kwargs.pop('index')
+        subresource_pk = kwargs.pop('subresource_pk', None)
 
         self.instance = self._safe_get(request, **kwargs)
 
-        # We use pk as index from now on
-        kwargs['pk'] = index
+        # We use subresource pk as pk from now on
+        kwargs['pk'] = subresource_pk
 
         return super(MongoEngineListResource, self).dispatch(request_type, request, **kwargs)
 
@@ -696,53 +745,89 @@ class MongoEngineListResource(MongoEngineResource):
         if not self.instance:
             return ListQuerySet()
 
-        def add_index(index, obj):
-            obj.pk = unicode(index)
-            return obj
+        pk_field = getattr(self._meta, 'id_field', None)
 
-        return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
+        if pk_field is not None:
+            object_list = []
+            for obj in getattr(self.instance, self.attribute):
+                pk = getattr(obj, pk_field)
+                obj.__class__.pk = fields.link_property(pk_field)
+                object_list.append((unicode(pk), obj))
+            return ListQuerySet(object_list)
+
+        else:
+            def add_index(index, obj):
+                obj.pk = index
+                return obj
+
+            return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, request=None, **kwargs):
-        bundle.obj = self._meta.object_class()
+        try:
+            bundle.obj = self._meta.object_class()
 
-        for key, value in kwargs.items():
-            setattr(bundle.obj, key, value)
+            for key, value in kwargs.items():
+                setattr(bundle.obj, key, value)
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        object_list = getattr(self.instance, self.attribute)
-        object_list.append(bundle.obj)
+            object_list = getattr(self.instance, self.attribute)
+            pk_field = getattr(self._meta, 'id_field', None)
 
-        bundle.obj.pk = unicode(len(object_list) - 1)
+            if pk_field is None:
+                bundle.obj.pk = len(object_list)
+            else:
+                bundle.obj.__class__.pk = fields.link_property(pk_field)
 
-        self.save_related(bundle)
+            object_list.append(bundle.obj)
 
-        self.instance.save()
+            self.save_related(bundle)
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            self.instance.save()
+
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
+
+    def find_embedded_document(self, objects, pk_field, pk):
+        # TODO: Would it be faster to traverse in reversed direction? Because probably last elements are fetched more often in practice?
+        # TODO: Should we cache information about mappings between IDs and elements?
+        for i, obj in enumerate(objects):
+            if getattr(obj, pk_field) == pk:
+                return i
+
+        raise IndexError("Embedded document with primary key '%s' not found." % pk)
 
     # TODO: Use skip_errors?
     def obj_update(self, bundle, request=None, skip_errors=False, **kwargs):
-        if not bundle.obj or not getattr(bundle.obj, 'pk', None):
-            try:
-                bundle.obj = self.obj_get(request, **kwargs)
-            except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+        try:
+            if not bundle.obj or not getattr(bundle.obj, 'pk', None):
+                try:
+                    bundle.obj = self.obj_get(request, **kwargs)
+                except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
+                    raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        bundle = self.full_hydrate(bundle)
+            bundle = self.full_hydrate(bundle)
 
-        object_list = getattr(self.instance, self.attribute)
-        object_list[int(bundle.obj.pk)] = bundle.obj
+            object_list = getattr(self.instance, self.attribute)
+            pk_field = getattr(self._meta, 'id_field', None)
 
-        self.save_related(bundle)
+            if pk_field is None:
+                object_list[bundle.obj.pk] = bundle.obj
+            else:
+                object_list[self.find_embedded_document(object_list, pk_field, bundle.obj.pk)] = bundle.obj
 
-        self.instance.save()
+            self.save_related(bundle)
 
-        m2m_bundle = self.hydrate_m2m(bundle)
-        self.save_m2m(m2m_bundle)
-        return bundle
+            self.instance.save()
+
+            m2m_bundle = self.hydrate_m2m(bundle)
+            self.save_m2m(m2m_bundle)
+            return bundle
+        except mongoengine.ValidationError, e:
+            raise exceptions.ValidationError(e.message)
 
     def obj_delete(self, request=None, **kwargs):
         obj = kwargs.pop('_obj', None)
@@ -751,9 +836,21 @@ class MongoEngineListResource(MongoEngineResource):
             try:
                 obj = self.obj_get(request, **kwargs)
             except (queryset.DoesNotExist, exceptions.ObjectDoesNotExist):
-                raise exceptions.NotFound("A document instance matching the provided arguments could not be found.")
+                raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
-        getattr(self.instance, self.attribute).pop(int(obj.pk))
+        object_list = getattr(self.instance, self.attribute)
+        pk_field = getattr(self._meta, 'id_field', None)
+
+        if pk_field is None:
+            object_list.pop(obj.pk)
+        else:
+            object_list.pop(self.find_embedded_document(object_list, pk_field, obj.pk))
+
+        # Make sure to delete FileField files
+        for fieldname, field in obj._fields.items():
+            if isinstance(field, mongoengine_fields.FileField):
+                obj[fieldname].delete()
+
         self.instance.save()
 
     def detail_uri_kwargs(self, bundle_or_obj):
@@ -765,7 +862,7 @@ class MongoEngineListResource(MongoEngineResource):
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
             'subresource_name': self.attribute,
-            'index': obj.pk,
+            'subresource_pk': obj.pk,
         }
 
         if hasattr(obj, 'parent'):
