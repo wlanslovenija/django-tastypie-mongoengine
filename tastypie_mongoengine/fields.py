@@ -29,7 +29,7 @@ class GetRelatedMixin(object):
         type_map = getattr(related_resource._meta, 'polymorphic', {})
         if type_map and getattr(related_resource._meta, 'prefer_polymorphic_resource_uri', False):
             resource = related_resource._get_resource_from_class(type_map, related_instance.__class__)
-            if related_resource.get_resource_list_uri():
+            if related_resource.get_resource_uri():
                 related_resource._meta.resource_name = resource._meta.resource_name
         return related_resource
 
