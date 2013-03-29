@@ -700,6 +700,8 @@ class MongoEngineResource(resources.ModelResource):
         Update the object in original_bundle in-place using new_data.
         """
 
+        # TODO: Is this the place to use MongoDB atomic operations to update the document?
+
         from tastypie.utils import dict_strip_unicode_keys
         original_bundle.data.update(**dict_strip_unicode_keys(new_data))
 
