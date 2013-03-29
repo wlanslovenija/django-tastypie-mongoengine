@@ -161,3 +161,66 @@ an additional parameter ``type`` to ``Content-Type`` in your payload request::
 Alternatively, you can pass a query string parameter.
 
 All this works also for embedded documents in list.
+
+Polymorphic resource_uri
+------------------------
+
+By default, polymorphic resources are exposed through the API with a common
+``resource_uri``.
+
+In the previous case, ``PersonResource`` and ``StrangePersonResource`` are both
+exposed through the ``/<api_version>/person/`` resource URI.
+
+But in some cases, you may want to expose your resources through the polymorphic
+resource uri.
+To use this behaviour, you should set the ``prefer_polymorphic_resource_uri``
+meta variable to ``True``.
+
+You might define your resources as::
+
+    class IndividualResource(resources.MongoEngineResource):
+        class Meta:
+            queryset = documents.Individual.objects.all()
+            allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+            authorization = tastypie_authorization.Authorization()
+            paginator_class = paginator.Paginator
+
+    class CompanyResource(resources.MongoEngineResource):
+        class Meta:
+            queryset = documents.Company.objects.all()
+            allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+            authorization = tastypie_authorization.Authorization()
+            paginator_class = paginator.Paginator
+
+    class ContactResource(resources.MongoEngineResource):
+        class Meta:
+            queryset = documents.Contact.objects.all()
+            allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+            authorization = tastypie_authorization.Authorization()
+
+            prefer_polymorphic_resource_uri = True
+            polymorphic = {
+                'individual': IndividualResource,
+                'company': CompanyResource,
+            }
+
+You might now reference both resources::
+
+    class ContactGroupResource(resources.MongoEngineResource):
+        contacts = fields.ReferencedListField(of='test_project.test_app.api.resources.ContactResource', attribute='contacts', null=True)
+
+        class Meta:
+            queryset = documents.ContactGroup.objects.all()
+            allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+            authorization = tastypie_authorization.Authorization()
+
+And for each contact listed, the:
+
+* ``IndividualResource`` would be dehydrated to ``/<api_version>/individual/<id>/``
+* ``CompanyResource`` to ``/<api_version>/company/<id>/``
+
+.. warning::
+
+    The ``ContactResource`` could not be registered but be careful to register
+    all the resources present in the ``polymorphic`` *dict* otherwise the
+    dehydrated ``resource_uri`` will point to the parent resource.

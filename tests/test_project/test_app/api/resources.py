@@ -64,6 +64,48 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
             'strangeperson': EmbeddedStrangePersonResource,
         }
 
+class IndividualResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Individual.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class CompanyResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Company.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class UnregisteredCompanyResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.UnregisteredCompany.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class ContactResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Contact.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+        prefer_polymorphic_resource_uri = True
+        polymorphic = {
+            'individual': IndividualResource,
+            'company': CompanyResource,
+            'unregisteredcompany': UnregisteredCompanyResource,
+        }
+
+class ContactGroupResource(resources.MongoEngineResource):
+    contacts = fields.ReferencedListField(of='test_project.test_app.api.resources.ContactResource', attribute='contacts', null=True)
+
+    class Meta:
+        queryset = documents.ContactGroup.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
 class CustomerResource(resources.MongoEngineResource):
     person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
 
@@ -212,5 +254,29 @@ class PipeResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.Pipe.objects.all()
         resource_name = 'pipes'
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class BlankableEmbeddedResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.BlankableEmbedded
+
+class BlankableParentResource(resources.MongoEngineResource):
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True)
+
+    class Meta:
+        queryset = documents.BlankableParent.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class TimezonedDateTimeResource(resources.MongoEngineResource):
+    class Meta:
+        object_class = documents.TimezonedDateTime
+
+class ReadonlyParentResource(resources.MongoEngineResource):
+    tzdt = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.TimezonedDateTimeResource', attribute='tzdt', readonly=True)
+
+    class Meta:
+        queryset = documents.ReadonlyParent.objects.all()
         allowed_methods = ('get', 'post', 'put', 'delete')
         authorization = tastypie_authorization.Authorization()

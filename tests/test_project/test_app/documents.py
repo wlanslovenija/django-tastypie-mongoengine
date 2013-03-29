@@ -1,5 +1,6 @@
 import bson
 import mongoengine
+import datetime
 
 class Person(mongoengine.Document):
     meta = {
@@ -12,6 +13,26 @@ class Person(mongoengine.Document):
 
 class StrangePerson(Person):
     strange = mongoengine.StringField(max_length=100, required=True)
+
+
+class Contact(mongoengine.Document):
+    meta = {
+        'allow_inheritance': True,
+    }
+
+    phone = mongoengine.StringField(max_length=16, required=True)
+
+class Individual(Contact):
+    name = mongoengine.StringField(max_length=200, required=True)
+
+class Company(Contact):
+    corporate_name = mongoengine.StringField(max_length=200, required=True)
+
+class UnregisteredCompany(Company):
+    pass
+
+class ContactGroup(mongoengine.Document):
+    contacts = mongoengine.ListField(mongoengine.ReferenceField(Contact, required=True))
 
 class EmbeddedPerson(mongoengine.EmbeddedDocument):
     name = mongoengine.StringField(max_length=200, required=True)
@@ -91,3 +112,18 @@ class PipeExporterEmbedded(mongoengine.EmbeddedDocument):
 class Pipe(mongoengine.Document):
     name = mongoengine.StringField(required=True, unique=True)
     exporters = mongoengine.ListField(mongoengine.EmbeddedDocumentField(PipeExporterEmbedded))
+
+class BlankableEmbedded(mongoengine.EmbeddedDocument):
+    name = mongoengine.StringField(required=True, default='A blank name')
+    description = mongoengine.StringField()
+
+class BlankableParent(mongoengine.Document):
+    embedded = mongoengine.EmbeddedDocumentField(BlankableEmbedded, required=True, default=BlankableEmbedded())
+
+class TimezonedDateTime(mongoengine.EmbeddedDocument):
+    dt = mongoengine.DateTimeField(required=True)
+    tz = mongoengine.StringField(required=True)
+
+class ReadonlyParent(mongoengine.Document):
+    name = mongoengine.StringField(required=True)
+    tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime.datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))

@@ -416,7 +416,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(customer2_uri)
         self.assertEqual(response.status_code, 200)
         response = json.loads(response.content)
-        
+
         self.assertEqual(response['person']['name'], 'Person 1 PATCHED')
         self.assertEqual(response['person']['optional'], 'Optional PATCHED')
 
@@ -1091,6 +1091,51 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('onlysubtypeperson'), '{"name": "Person 1"}', content_type='application/json')
         self.assertContains(response, 'Invalid object type', status_code=400)
 
+    def test_polymorphic_with_related_resource_names(self):
+        response = self.c.post(self.resourceListURI('individual'), '{"name": "Individual 1", "phone": "000-000000"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        individual_uri = self.fullURItoAbsoluteURI(response['location'])
+
+        response = self.c.post(self.resourceListURI('company'), '{"corporate_name": "Company 1", "phone": "000-000000"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+        company_uri = self.fullURItoAbsoluteURI(response['location'])
+
+        response = self.c.get(self.resourceListURI('contact'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 2)
+        for obj in response['objects']:
+            if obj['resource_type'] == 'individual':
+                self.assertEqual(obj['resource_uri'], individual_uri)
+            else:
+                self.assertEqual(obj['resource_uri'], company_uri)
+
+        response = self.c.post(self.resourceListURI('contactgroup'), '{"contacts": ["%s", "%s"]}' % (individual_uri, company_uri), content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        response = self.c.get(self.resourceListURI('contactgroup'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 1)
+        self.assertIn(individual_uri, response['objects'][0]['contacts'])
+        self.assertIn(company_uri, response['objects'][0]['contacts'])
+
+        # Test fallback
+        # Because the resource is not registered, it should be added on the mongoengine layer
+        unreg_company = resources.UnregisteredCompanyResource()._meta.object_class(corporate_name='Unreg company', phone='000-000000')
+        unreg_company.save()
+
+        response = self.c.get(self.resourceListURI('contact'), content_type='application/json')
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['meta']['total_count'], 3)
+        self.assertEqual(response['objects'][2]['resource_uri'], self.resourceDetailURI('company', unreg_company.id))
+        self.assertEqual(response['objects'][2]['resource_type'], 'unregisteredcompany')
+        self.assertEqual(response['objects'][2]['corporate_name'], 'Unreg company')
+
     def test_polymorphic_duplicate_class(self):
         with self.assertRaises(exceptions.ImproperlyConfigured):
             class DuplicateSubtypePersonResource(tastypie_mongoengine_resources.MongoEngineResource):
@@ -1450,3 +1495,29 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['exporters'][0]['exporter']['name'], 'exporter_1')
         self.assertEqual(response['exporters'][0]['exporter']['resource_uri'], self.fullURItoAbsoluteURI(exporter_uri))
         self.assertEqual(response['exporters'][0]['name'], 'exporter_embedded')
+
+    def test_blankable_embedded(self):
+        response = self.c.post(self.resourceListURI('blankableparent'), '{}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        document_uri = response['location']
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['embedded']['name'], 'A blank name')
+        self.assertEqual(response['embedded']['description'], None)
+
+    def test_readonly_embedded(self):
+        response = self.c.post(self.resourceListURI('readonlyparent'), '{"name": "A readonly embedded test"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        document_uri = response['location']
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['tzdt']['dt'], '2012-12-12T12:12:12')
+        self.assertEqual(response['tzdt']['tz'], 'UTC')
