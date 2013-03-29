@@ -10,6 +10,10 @@ from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exception
 
 import mongoengine
 from mongoengine import fields as mongoengine_fields, queryset
+try:
+    from mongoengine.queryset import tranform as mongoengine_tranform
+except ImportError:
+    mongoengine_tranform = None
 
 from tastypie_mongoengine import fields
 
@@ -17,7 +21,7 @@ from tastypie_mongoengine import fields
 # We use a mock Query object to provide the same interface and return query terms by MongoEngine. 
 # MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
 
-QUERY_TERMS_ALL = getattr(queryset, 'QUERY_TERMS_ALL', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere','contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'))
+QUERY_TERMS_ALL = getattr(mongoengine_tranform, 'MATCH_OPERATORS', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere','contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'))
 
 class Query(object):
     query_terms = dict([(query_term, None) for query_term in QUERY_TERMS_ALL])
@@ -318,6 +322,9 @@ class MongoEngineResource(resources.ModelResource):
             self._meta.queryset = resource._meta.queryset
             self.base_fields = resource.base_fields.copy()
             self.fields = resource.fields.copy()
+            if getattr(self._meta, 'prefer_polymorphic_resource_uri', False):
+                if resource.get_resource_list_uri():
+                    self._meta.resource_name = resource._meta.resource_name
             if getattr(self._meta, 'include_resource_type', True):
                 self.base_fields['resource_type'] = base_fields['resource_type']
                 self.fields['resource_type'] = fields['resource_type']
