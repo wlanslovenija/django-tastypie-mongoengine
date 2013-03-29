@@ -692,11 +692,12 @@ class MongoEngineResource(resources.ModelResource):
         """
         Update the object in original_bundle in-place using new_data.
         """
+
         from tastypie.utils import dict_strip_unicode_keys
         original_bundle.data.update(**dict_strip_unicode_keys(new_data))
 
         # Now we've got a bundle with the new data sitting in it and we're
-        # we're basically in the same spot as a PUT request. SO the rest of this
+        # we're basically in the same spot as a PUT request. So the rest of this
         # function is cribbed from put_detail.
         self.alter_deserialized_detail_data(request, original_bundle.data)
         
@@ -706,7 +707,6 @@ class MongoEngineResource(resources.ModelResource):
             self._meta.detail_uri_name: self.get_bundle_detail_data(original_bundle),
         }
         return self.obj_update(bundle=original_bundle, **kwargs)
-
 
 class MongoEngineListResource(MongoEngineResource):
     """
