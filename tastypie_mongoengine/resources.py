@@ -2,8 +2,15 @@ import itertools, re, sys
 
 from django.conf import urls
 from django.core import exceptions, urlresolvers
-from django.db.models import base as models_base, constants
+from django.db.models import base as models_base
 from django.utils import datastructures
+
+try:
+    # Django 1.5+
+    from django.db.models import constants
+except ImportError:
+    # Before Django 1.5
+    from django.db.models.sql import constants
 
 from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exceptions, fields as tastypie_fields, http, resources, utils
 
