@@ -7,7 +7,7 @@ Requirements
 ------------
 
 * Python_ 2.6+
-* Django_ 1.4+ (may work on lower version, but not tested)
+* Django_ 1.4+
 * django-tastypie_ 0.9.12+
 * MongoEngine_ 0.6.11+
 
