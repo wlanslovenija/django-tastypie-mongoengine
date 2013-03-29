@@ -1,10 +1,11 @@
-from __future__ import absolute_import
+import os
 
 from django.utils import unittest
 
-from . import test_basic
-
 def suite():
     return unittest.TestSuite((
-        unittest.TestLoader().loadTestsFromTestCase(test_basic.BasicTest),
+        unittest.TestLoader().discover(
+            start_dir=os.path.abspath(os.path.dirname(__file__)),
+            top_level_dir=os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..', '..')),
+        ),
     ))

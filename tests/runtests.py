@@ -8,7 +8,7 @@ def runtests():
 
     from django.core.management import execute_from_command_line
 
-    argv = [sys.argv[0], 'test']
+    argv = [sys.argv[0], 'test', '--verbosity=2']
     execute_from_command_line(argv)
     sys.exit(0)
 

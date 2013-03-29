@@ -10,7 +10,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '0.2.3'
+VERSION = '0.3'
 
 if __name__ == '__main__':
     setup(
@@ -18,8 +18,8 @@ if __name__ == '__main__':
         version = VERSION,
         description = "MongoEngine support for django-tastypie.",
         long_description = open(os.path.join(os.path.dirname(__file__), 'README.rst')).read(),
-        author = 'Matevz',
-        author_email = 'matevz.mihalic@gmail.com',
+        author = 'Mitar',
+        author_email = 'mitar.django@tnode.com',
         url = 'https://github.com/mitar/django-tastypie-mongoengine',
         keywords = "REST RESTful tastypie mongo mongodb mongoengine django",
         license = 'AGPLv3',
@@ -37,13 +37,13 @@ if __name__ == '__main__':
         install_requires = (
             'Django>=1.4',
             'django-tastypie>=0.9.12',
-            'mongoengine>=0.6.9',
+            'mongoengine>=0.6.11',
         ),
         test_suite = 'tests.runtests.runtests',
         tests_require = (
             'Django>=1.4',
             'django-tastypie>=0.9.12',
-            'mongoengine>=0.6.9',
+            'mongoengine>=0.6.11',
             'nose',
         ),
     )
