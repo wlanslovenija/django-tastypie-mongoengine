@@ -64,6 +64,48 @@ class EmbeddedPersonResource(resources.MongoEngineResource):
             'strangeperson': EmbeddedStrangePersonResource,
         }
 
+class IndividualResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Individual.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class CompanyResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Company.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class UnregisteredCompanyResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.UnregisteredCompany.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+        paginator_class = paginator.Paginator
+
+class ContactResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.Contact.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+        prefer_polymorphic_resource_uri = True
+        polymorphic = {
+            'individual': IndividualResource,
+            'company': CompanyResource,
+            'unregisteredcompany': UnregisteredCompanyResource,
+        }
+
+class ContactGroupResource(resources.MongoEngineResource):
+    contacts = fields.ReferencedListField(of='test_project.test_app.api.resources.ContactResource', attribute='contacts', null=True)
+
+    class Meta:
+        queryset = documents.ContactGroup.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
 class CustomerResource(resources.MongoEngineResource):
     person = fields.ReferenceField(to='test_project.test_app.api.resources.PersonResource', attribute='person', full=True)
 
