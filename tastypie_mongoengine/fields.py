@@ -166,7 +166,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
 
         return data
 
-    def dehydrate(self, bundle):
+    def dehydrate(self, bundle, for_list=True):
         assert bundle.obj
 
         the_m2ms = None
@@ -197,7 +197,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
 
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
             self.m2m_resources.append(m2m_resource)
-            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
+            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource, for_list=for_list))
 
         return m2m_dehydrated
 
@@ -248,7 +248,7 @@ class ReferencedListField(TastypieMongoengineMixin, fields.ToManyField):
             }),
         }
 
-    def dehydrate(self, bundle):
+    def dehydrate(self, bundle, for_list=True):
         if not bundle.obj or not bundle.obj.pk:
             if not self.null:
                 raise exceptions.ApiFieldError("The document %r does not have a primary key and can not be used in a ReferencedList context." % bundle.obj)
@@ -275,7 +275,7 @@ class ReferencedListField(TastypieMongoengineMixin, fields.ToManyField):
             m2m_resource = self.get_related_resource(m2m)
             m2m_bundle = tastypie_bundle.Bundle(obj=m2m, request=bundle.request)
             self.m2m_resources.append(m2m_resource)
-            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource))
+            m2m_dehydrated.append(self.dehydrate_related(m2m_bundle, m2m_resource, for_list=for_list))
 
         return m2m_dehydrated
 
