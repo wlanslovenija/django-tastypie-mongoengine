@@ -55,10 +55,10 @@ class EmbeddedComment(InheritableEmbeddedDocument):
 
 class EmbeddedPost(InheritableEmbeddedDocument):
     title = mongoengine.StringField(max_length=200, required=True)
-    comments = mongoengine.ListField(InheritableEmbeddedDocumentField(EmbeddedComment))
+    comments = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedComment))
 
 class Board(InheritableDocument):
-    posts = mongoengine.ListField(InheritableEmbeddedDocumentField(EmbeddedPost))
+    posts = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPost))
 
 class EmbeddedCommentWithID(InheritableEmbeddedDocument):
     id = mongoengine.ObjectIdField(primary_key=True, default=lambda: bson.ObjectId())
@@ -66,13 +66,13 @@ class EmbeddedCommentWithID(InheritableEmbeddedDocument):
 
 class DocumentWithID(InheritableDocument):
     title = mongoengine.StringField(max_length=200, required=True)
-    comments = mongoengine.ListField(InheritableEmbeddedDocumentField(EmbeddedCommentWithID))
+    comments = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedCommentWithID))
 
 class EmbeddedListInEmbeddedDocTest(InheritableDocument):
-    post = InheritableEmbeddedDocumentField(EmbeddedPost)
+    post = mongoengine.EmbeddedDocumentField(EmbeddedPost)
 
 class EmbeddedDocumentFieldTest(InheritableDocument):
-    customer = InheritableEmbeddedDocumentField(EmbeddedPerson)
+    customer = mongoengine.EmbeddedDocumentField(EmbeddedPerson)
 
 class DictFieldTest(InheritableDocument):
     dictionary = mongoengine.DictField(required=True)
@@ -83,7 +83,7 @@ class ListFieldTest(InheritableDocument):
     anytype = mongoengine.ListField()
 
 class EmbeddedListFieldTest(InheritableDocument):
-    embeddedlist = mongoengine.ListField(InheritableEmbeddedDocumentField(EmbeddedPerson))
+    embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
 
 class ReferencedListFieldTest(InheritableDocument):
     referencedlist = mongoengine.ListField(mongoengine.ReferenceField(Person))
@@ -93,7 +93,7 @@ class BooleanMapTest(InheritableDocument):
     is_published_defined = mongoengine.BooleanField(default=False, required=True)
 
 class EmbeddedListWithFlagFieldTest(InheritableDocument):
-    embeddedlist = mongoengine.ListField(InheritableEmbeddedDocumentField(EmbeddedPerson))
+    embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
     is_published = mongoengine.BooleanField(default=False, required=True)
 
 class AutoAllocationFieldTest(InheritableDocument):
@@ -115,14 +115,14 @@ class PipeExporterEmbedded(InheritableEmbeddedDocument):
 
 class Pipe(InheritableDocument):
     name = mongoengine.StringField(required=True, unique=True)
-    exporters = mongoengine.ListField(InheritableEmbeddedDocumentField(PipeExporterEmbedded))
+    exporters = mongoengine.ListField(mongoengine.EmbeddedDocumentField(PipeExporterEmbedded))
 
 class BlankableEmbedded(InheritableEmbeddedDocument):
     name = mongoengine.StringField(required=True, default='A blank name')
     description = mongoengine.StringField()
 
 class BlankableParent(InheritableDocument):
-    embedded = InheritableEmbeddedDocumentField(BlankableEmbedded, required=True, default=BlankableEmbedded())
+    embedded = mongoengine.EmbeddedDocumentField(BlankableEmbedded, required=True, default=BlankableEmbedded())
 
 class TimezonedDateTime(InheritableEmbeddedDocument):
     dt = mongoengine.DateTimeField(required=True)
@@ -130,4 +130,4 @@ class TimezonedDateTime(InheritableEmbeddedDocument):
 
 class ReadonlyParent(InheritableDocument):
     name = mongoengine.StringField(required=True)
-    tzdt = InheritableEmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime.datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
+    tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=TimezonedDateTime(dt=datetime.datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
