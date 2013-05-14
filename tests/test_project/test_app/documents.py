@@ -2,13 +2,13 @@ import bson
 import mongoengine
 import datetime
 
-class InheritableDocument(InheritableDocument):
+class InheritableDocument(mongoengine.Document):
     meta = {
         'abstract': True,
         'allow_inheritance': True,
     }
 
-class InheritableEmbeddedDocument(InheritableEmbeddedDocument):
+class InheritableEmbeddedDocument(mongoengine.EmbeddedDocument):
     meta = {
         'abstract': True,
         'allow_inheritance': True,
