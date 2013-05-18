@@ -298,7 +298,8 @@ class MongoEngineResource(resources.ModelResource):
 
         self._meta.queryset._document._collection = None
         self._meta.queryset._collection_obj = self._meta.queryset._document._get_collection()
-        self._meta.queryset._reset_already_indexed()
+        if hasattr(self._meta.queryset, '_reset_already_indexed'):
+            self._meta.queryset._reset_already_indexed()
 
     def get_object_list(self, request):
         """
