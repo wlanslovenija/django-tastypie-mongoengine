@@ -262,7 +262,7 @@ class BlankableEmbeddedResource(resources.MongoEngineResource):
         object_class = documents.BlankableEmbedded
 
 class BlankableParentResource(resources.MongoEngineResource):
-    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True)
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True, default=lambda: documents.BlankableEmbedded())
 
     class Meta:
         queryset = documents.BlankableParent.objects.all()

@@ -122,7 +122,7 @@ class BlankableEmbedded(InheritableEmbeddedDocument):
     description = mongoengine.StringField()
 
 class BlankableParent(InheritableDocument):
-    embedded = mongoengine.EmbeddedDocumentField(BlankableEmbedded, required=True, default=BlankableEmbedded())
+    embedded = mongoengine.EmbeddedDocumentField(BlankableEmbedded, required=True, default=lambda: BlankableEmbedded())
 
 class TimezonedDateTime(InheritableEmbeddedDocument):
     dt = mongoengine.DateTimeField(required=True)
