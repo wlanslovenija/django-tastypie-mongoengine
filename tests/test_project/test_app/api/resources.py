@@ -262,11 +262,11 @@ class BlankableEmbeddedResource(resources.MongoEngineResource):
         object_class = documents.BlankableEmbedded
 
 class BlankableParentResource(resources.MongoEngineResource):
-    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True, default=lambda: documents.BlankableEmbedded())
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.BlankableEmbeddedResource', attribute='embedded', blank=True)
 
     class Meta:
         queryset = documents.BlankableParent.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
 
 class TimezonedDateTimeResource(resources.MongoEngineResource):

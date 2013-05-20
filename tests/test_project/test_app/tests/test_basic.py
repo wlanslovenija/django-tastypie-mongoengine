@@ -1509,6 +1509,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['embedded']['name'], 'A blank name')
         self.assertEqual(response['embedded']['description'], None)
 
+        response = self.c.patch(document_uri, '{"embedded": null}', content_type='application/json')
+        self.assertContains(response, 'Field is required', status_code=400)
+
     def test_readonly_embedded(self):
         response = self.c.post(self.resourceListURI('readonlyparent'), '{"name": "A readonly embedded test"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)

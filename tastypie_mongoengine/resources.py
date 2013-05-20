@@ -459,6 +459,9 @@ class MongoEngineResource(resources.ModelResource):
                             value = field_object.default()
                         else:
                             value = field_object.default
+                    # If it can be blank, we leave the field as it is, it was possibly already populated or it is not even necessary to be
+                    elif field_object.blank:
+                        pass
                     else:
                         value = None
                 else:
