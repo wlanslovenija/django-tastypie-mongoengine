@@ -1533,3 +1533,19 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['tzdt']['dt'], '2012-12-12T12:12:12')
         self.assertEqual(response['tzdt']['tz'], 'UTC')
+
+    def test_comment_schema(self):
+        uri = self.resourceListURI('embeddedcomment') + 'schema/'
+        response = self.c.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_post_schema(self):
+        uri = self.resourceListURI('embeddedpost') + 'schema/'
+        response = self.c.get(uri)
+        self.assertEqual(response.status_code, 200)
+
+    def test_board_schema(self):
+        uri = self.resourceListURI('board') + 'schema/'
+        response = self.c.get(uri)
+        self.assertEqual(response.status_code, 200)
+
