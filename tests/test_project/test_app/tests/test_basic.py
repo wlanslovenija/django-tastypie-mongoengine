@@ -1533,3 +1533,36 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['tzdt']['dt'], '2012-12-12T12:12:12')
         self.assertEqual(response['tzdt']['tz'], 'UTC')
+
+        response = self.c.patch(document_uri, '{"tzdt": {"dt": "2012-12-12T12:00:00"}}', content_type='application/json')
+        # Tastypie still accepts the request, just does not act on it
+        # TODO: Should Tastypie return a failure status code?
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(document_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['tzdt']['dt'], '2012-12-12T12:12:12')
+        self.assertEqual(response['tzdt']['tz'], 'UTC')
+
+    def test_datetime(self):
+        response = self.c.post(self.resourceListURI('datetimefieldtest'), '{"datetime": "2012-12-12T12:12:12"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        datetimefieldtest_uri = response['location']
+
+        response = self.c.get(datetimefieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['datetime'], '2012-12-12T12:12:12')
+
+        response = self.c.patch(datetimefieldtest_uri, '{"datetime": "2012-12-12T12:00:00"}', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        response = self.c.get(datetimefieldtest_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['datetime'], '2012-12-12T12:00:00')

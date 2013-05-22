@@ -278,5 +278,11 @@ class ReadonlyParentResource(resources.MongoEngineResource):
 
     class Meta:
         queryset = documents.ReadonlyParent.objects.all()
-        allowed_methods = ('get', 'post', 'put', 'delete')
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class DatetimeFieldTestResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.DatetimeFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()

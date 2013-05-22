@@ -131,3 +131,6 @@ class TimezonedDateTime(InheritableEmbeddedDocument):
 class ReadonlyParent(InheritableDocument):
     name = mongoengine.StringField(required=True)
     tzdt = mongoengine.EmbeddedDocumentField(TimezonedDateTime, required=True, default=lambda: TimezonedDateTime(dt=datetime.datetime(2012, 12, 12, 12, 12, 12), tz='UTC'))
+
+class DatetimeFieldTest(InheritableDocument):
+    datetime = mongoengine.DateTimeField(required=True)
