@@ -155,6 +155,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
             'embedded': {
                 'fields': self.to_class(self.get_api_name()).build_schema()['fields'],
             },
+            'related_type': 'to_many',
         }
 
         type_map = getattr(self.to_class(self.get_api_name())._meta, 'polymorphic', {})
@@ -247,6 +248,7 @@ class ReferencedListField(TastypieMongoengineMixin, fields.ToManyField):
                 'api_name': self.get_api_name(),
                 'resource_name': resource._meta.resource_name,
             }),
+            'related_type': 'to_many',
         }
 
     def dehydrate(self, bundle, for_list=True):
