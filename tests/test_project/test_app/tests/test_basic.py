@@ -1535,8 +1535,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['tzdt']['tz'], 'UTC')
 
         response = self.c.patch(document_uri, '{"tzdt": {"dt": "2012-12-12T12:00:00"}}', content_type='application/json')
-        # Tastypie still accepts the request, just does not act on it
-        # TODO: Should Tastypie return a failure status code?
+        # Tastypie ignores readonly field, should not do anything, but succeed
         self.assertEqual(response.status_code, 202)
 
         response = self.c.get(document_uri)
