@@ -1,9 +1,10 @@
-import itertools, re, sys
+branchimport itertools, re, sys
 
 from django.conf import urls
 from django.core import exceptions, urlresolvers
 from django.db.models import base as models_base
 from django.utils import datastructures
+from bson import ObjectId
 
 try:
     # Django 1.5+
@@ -68,12 +69,22 @@ class ListQuerySet(datastructures.SortedDict):
         for field, value in kwargs.iteritems():
             value = self._process_filter_value(value)
             if constants.LOOKUP_SEP in field:
-                raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
-
+                filter_bits = field.split(constants.LOOKUP_SEP)
+                field_name = filter_bits.pop(0)
+                filter_type = 'exact'
             try:
-                result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
+                if isinstance(getattr(result[0], field_name), ObjectId):
+                    result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field_name).__str__() == value])
+                else:
+                    result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field_name) == value]  )
             except AttributeError, e:
                 raise tastypie_exceptions.InvalidFilterError(e)
+            #     raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
+
+            # try:
+            #     result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
+            # except AttributeError, e:
+            #     raise tastypie_exceptions.InvalidFilterError(e)
 
         return result
 
