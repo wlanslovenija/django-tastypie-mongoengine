@@ -1,4 +1,4 @@
-branchimport itertools, re, sys
+import itertools, re, sys
 
 from django.conf import urls
 from django.core import exceptions, urlresolvers
