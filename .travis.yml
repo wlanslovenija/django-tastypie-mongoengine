@@ -7,6 +7,6 @@ env:
  - BEFORE_DJANGO_VERSION=1.6
 services: mongodb
 install:
-  - pip install "Django<$BEFORE_DJANGO_VERSION"
-  - python setup.py install
+ - pip install "Django<$BEFORE_DJANGO_VERSION"
+ - python setup.py install
 script: "python setup.py test"
