@@ -5,8 +5,14 @@ python:
 env:
  - BEFORE_DJANGO_VERSION=1.5
  - BEFORE_DJANGO_VERSION=1.6
+ - TASTYPIE_VERSION="==0.9.12"
+ - TASTYPIE_VERSION=">=0.9.12"
+ - MONGOENGINE_VERSION="==0.6.11"
+ - MONGOENGINE_VERSION=">=0.6.11,<0.8.2"
 services: mongodb
 install:
  - pip install "Django<$BEFORE_DJANGO_VERSION"
+ - pip install "django-tastypie$TASTYPIE_VERSION"
+ - pip install "mongoengine$MONGOENGINE_VERSION"
  - python setup.py install
 script: "python setup.py test"
