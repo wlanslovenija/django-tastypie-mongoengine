@@ -1123,7 +1123,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertIn(company_uri, response['objects'][0]['contacts'])
 
         # Test fallback
-        # Because the resource is not registered, it should be added on the mongoengine layer
+        # Because the resource is not registered, it should be added on the MongoEngine layer
         unreg_company_resource = resources.UnregisteredCompanyResource()
         unreg_company_resource._reset_collection()
         unreg_company = unreg_company_resource._meta.object_class(corporate_name='Unreg company', phone='000-000000')
@@ -1519,6 +1519,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['embedded']['description'], None)
 
         response = self.c.patch(document_uri, '{"embedded": null}', content_type='application/json')
+
+        # MongoEngine 0.8.2 broke handling of None values on fields with defaults defined and the following does not fail
+        # https://github.com/MongoEngine/mongoengine/issues/381
         self.assertContains(response, 'Field is required', status_code=400)
 
     def test_readonly_embedded(self):
