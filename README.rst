@@ -9,7 +9,7 @@ Requirements
 * Python_ 2.6+
 * Django_ 1.4+
 * django-tastypie_ 0.9.12+
-* MongoEngine_ 0.6.11+
+* MongoEngine_ 0.8.0+
 
 .. _Python: https://python.org
 .. _Django: http://djangoproject.com
