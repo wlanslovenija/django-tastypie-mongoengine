@@ -33,15 +33,18 @@ SESSION_ENGINE = 'mongoengine.django.sessions'
 TEST_RUNNER = 'tastypie_mongoengine.test_runner.MongoEngineTestSuiteRunner'
 
 INSTALLED_APPS = (
-    'mongoengine.django.mongo_auth',
     'tastypie',
     'tastypie_mongoengine',
     'test_project.test_app',
 )
 
-AUTH_USER_MODEL = 'mongo_auth.MongoUser'
-
 MONGO_DATABASE_NAME = 'test_project'
 
 import mongoengine
 mongoengine.connect(MONGO_DATABASE_NAME)
+
+if mongoengine.VERSION >= (0, 8, 0):
+    AUTH_USER_MODEL = 'mongo_auth.MongoUser'
+    INSTALLED_APPS = (
+        'mongoengine.django.mongo_auth',
+    ) + INSTALLED_APPS
