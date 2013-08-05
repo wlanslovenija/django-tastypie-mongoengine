@@ -256,11 +256,7 @@ class ReferencedListField(TastypieMongoengineMixin, fields.ToManyField):
         }
 
     def dehydrate(self, bundle, for_list=True):
-        if not bundle.obj or not bundle.obj.pk:
-            if not self.null:
-                raise exceptions.ApiFieldError("The document %r does not have a primary key and can not be used in a ReferencedList context." % bundle.obj)
-
-            return []
+        assert bundle.obj
 
         the_m2ms = None
 
