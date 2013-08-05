@@ -13,6 +13,7 @@ Contents
    :maxdepth: 2
    
    installation
+   tests
    usage
 
 Source Code and Issue Tracker
