@@ -7,6 +7,21 @@ from django.utils import unittest
 from mongoengine import connect, connection
 from mongoengine.django import tests
 
+DB_NAME = 'test_%s' % settings.MONGO_DATABASE_NAME
+
+
+def _connect():
+    connection.disconnect()
+    connect(DB_NAME, **getattr(settings, 'MONGO_DATABASE_OPTIONS', {}))
+
+
+# We need to call this at module load time, because unit test discover will
+# cause all of the resource classes to be loaded, and they will all construct
+# their querysets using the default connection, so we need to be sure that
+# it points to our test database.
+_connect()
+
+
 class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     """
     It is the same as in DjangoTestSuiteRunner, but without relational databases.
@@ -42,8 +57,7 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
         return simple.reorder_suite(suite, (testcases.TestCase,))
 
     def setup_databases(self, **kwargs):
-        connection.disconnect()
-        connect(self.db_name, **getattr(settings, 'MONGO_DATABASE_OPTIONS', {}))
+        _connect()
 
     def teardown_databases(self, old_config, **kwargs):
         connection.get_connection().drop_database(self.db_name)
