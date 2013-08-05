@@ -96,6 +96,15 @@ class EmbeddedListWithFlagFieldTest(InheritableDocument):
     embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedPerson))
     is_published = mongoengine.BooleanField(default=False, required=True)
 
+class EmbeddedWithReferencedList(InheritableEmbeddedDocument):
+    referencedlist = mongoengine.ListField(mongoengine.ReferenceField(Person))
+
+class EmbeddedReferencedListFieldTest(InheritableDocument):
+    embedded = mongoengine.EmbeddedDocumentField(EmbeddedWithReferencedList)
+
+class ListOfEmbeddedReferencedListFieldTest(InheritableDocument):
+    embeddedlist = mongoengine.ListField(mongoengine.EmbeddedDocumentField(EmbeddedWithReferencedList))
+
 class AutoAllocationFieldTest(InheritableDocument):
     name = mongoengine.StringField(required=True)
     slug = mongoengine.StringField(required=True)

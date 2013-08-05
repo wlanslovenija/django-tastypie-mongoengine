@@ -227,6 +227,30 @@ class EmbeddedListWithFlagFieldTestResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
         authorization = tastypie_authorization.Authorization()
 
+class EmbeddedWithReferencedListResource(resources.MongoEngineResource):
+    referencedlist = fields.ReferencedListField(of='test_project.test_app.api.resources.PersonResource', attribute='referencedlist', full=False, null=True)
+
+    class Meta:
+        object_class = documents.EmbeddedWithReferencedList
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class EmbeddedReferencedListFieldTestResource(resources.MongoEngineResource):
+    embedded = fields.EmbeddedDocumentField(embedded='test_project.test_app.api.resources.EmbeddedWithReferencedListResource', attribute='embedded')
+
+    class Meta:
+        queryset = documents.EmbeddedReferencedListFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
+class ListOfEmbeddedReferencedListFieldTestResource(resources.MongoEngineResource):
+    embeddedlist = fields.EmbeddedListField(of='test_project.test_app.api.resources.EmbeddedWithReferencedListResource', attribute='embeddedlist', full=True)
+
+    class Meta:
+        queryset = documents.ListOfEmbeddedReferencedListFieldTest.objects.all()
+        allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
+        authorization = tastypie_authorization.Authorization()
+
 class AutoAllocationFieldTestResource(resources.MongoEngineResource):
     slug = tastypie_fields.CharField(readonly=True, attribute='slug')
 

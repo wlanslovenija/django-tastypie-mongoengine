@@ -913,6 +913,34 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         self.assertEqual(response['name'], 'Person 1')
 
+    def test_embeddedreferencedlist_get(self):
+        person = documents.Person.objects.create(name="Person 1")
+        obj = documents.EmbeddedReferencedListFieldTest.objects.create(embedded=documents.EmbeddedWithReferencedList(referencedlist=[person]))
+
+        response = self.c.get(resources.EmbeddedReferencedListFieldTestResource().get_resource_uri(obj))
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        embedded = response['embedded']
+        self.assertIn('referencedlist', embedded)
+        self.assertEqual(embedded['referencedlist'], [resources.PersonResource().get_resource_uri(person)])
+
+    def test_listofembeddedreferencedlist_get(self):
+        person = documents.Person.objects.create(name="Person 1")
+        obj = documents.ListOfEmbeddedReferencedListFieldTest.objects.create(embeddedlist=[
+            documents.EmbeddedWithReferencedList(referencedlist=[person])
+        ])
+
+        response = self.c.get(resources.ListOfEmbeddedReferencedListFieldTestResource().get_resource_uri(obj))
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertIn('embeddedlist', response)
+        self.assertEqual(len(response['embeddedlist']), 1)
+        embedded = response['embeddedlist'][0]
+        self.assertIn('referencedlist', embedded)
+        self.assertEqual(embedded['referencedlist'], [resources.PersonResource().get_resource_uri(person)])
+
     def test_polymorphic_schema(self):
         person_schema_uri = self.resourceListURI('person') + 'schema/'
 
