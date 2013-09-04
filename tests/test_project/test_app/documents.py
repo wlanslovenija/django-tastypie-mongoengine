@@ -14,6 +14,12 @@ class InheritableEmbeddedDocument(mongoengine.EmbeddedDocument):
         'allow_inheritance': True,
     }
 
+class InheritableDynamicDocument(mongoengine.DynamicDocument):
+    meta = {
+        'abstract': True,
+        'allow_inheritance': True,
+    }
+
 class Person(InheritableDocument):
     name = mongoengine.StringField(max_length=200, required=True)
     optional = mongoengine.StringField(max_length=200, required=False)
@@ -22,6 +28,8 @@ class Person(InheritableDocument):
 class StrangePerson(Person):
     strange = mongoengine.StringField(max_length=100, required=True)
 
+class DynamicPerson(InheritableDynamicDocument):
+    pass
 
 class Contact(InheritableDocument):
     phone = mongoengine.StringField(max_length=16, required=True)

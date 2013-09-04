@@ -1568,3 +1568,17 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = json.loads(response.content)
 
         self.assertEqual(response['datetime'], '2012-12-12T12:00:00')
+
+    def test_dynamic(self):
+        response = self.c.post(self.resourceListURI('dynamicperson'), '{"name": "Person 1"}', content_type='application/json')
+
+        self.assertEqual(response.status_code, 201)
+
+        person1_uri = response['location']
+
+        response = self.c.get(person1_uri)
+        self.assertEqual(response.status_code, 200)
+        response = json.loads(response.content)
+
+        self.assertEqual(response['name'], 'Person 1')
+
