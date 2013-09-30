@@ -72,7 +72,7 @@ class ListQuerySet(datastructures.SortedDict):
 
             try:
                 result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
-            except AttributeError, e:
+            except AttributeError as e:
                 raise tastypie_exceptions.InvalidFilterError(e)
 
         return result
@@ -110,7 +110,7 @@ class ListQuerySet(datastructures.SortedDict):
 
             try:
                 result = [(unicode(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
-            except (AttributeError, IndexError), e:
+            except (AttributeError, IndexError) as e:
                 raise tastypie_exceptions.InvalidSortError(e)
 
         return ListQuerySet(result)
@@ -514,19 +514,19 @@ class MongoEngineResource(resources.ModelResource):
         # MongoEngine exceptions are separate from Django exceptions, we combine them here
         try:
             return super(MongoEngineResource, self).obj_get(bundle=bundle, **kwargs)
-        except self._meta.object_class.DoesNotExist, e:
+        except self._meta.object_class.DoesNotExist as e:
             exp = models_base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
             raise exp(*e.args)
-        except queryset.DoesNotExist, e:
+        except queryset.DoesNotExist as e:
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
-        except self._meta.object_class.MultipleObjectsReturned, e:
+        except self._meta.object_class.MultipleObjectsReturned as e:
             exp = models_base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
-        except queryset.MultipleObjectsReturned, e:
+        except queryset.MultipleObjectsReturned as e:
             exp = models_base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
             raise exp(*e.args)
-        except mongoengine.ValidationError, e:
+        except mongoengine.ValidationError as e:
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
             raise exp(*e.args)
 
@@ -564,7 +564,7 @@ class MongoEngineResource(resources.ModelResource):
     def save(self, bundle, skip_errors=False):
         try:
             return super(MongoEngineResource, self).save(bundle, skip_errors)
-        except mongoengine.ValidationError, e:
+        except mongoengine.ValidationError as e:
             raise exceptions.ValidationError(e.message)
 
     def save_m2m(self, bundle):
@@ -827,7 +827,7 @@ class MongoEngineListResource(MongoEngineResource):
             m2m_bundle = self.hydrate_m2m(bundle)
             self.save_m2m(m2m_bundle)
             return bundle
-        except mongoengine.ValidationError, e:
+        except mongoengine.ValidationError as e:
             raise exceptions.ValidationError(e.message)
 
     def find_embedded_document(self, objects, pk_field, pk):
@@ -863,7 +863,7 @@ class MongoEngineListResource(MongoEngineResource):
             m2m_bundle = self.hydrate_m2m(bundle)
             self.save_m2m(m2m_bundle)
             return bundle
-        except mongoengine.ValidationError, e:
+        except mongoengine.ValidationError as e:
             raise exceptions.ValidationError(e.message)
 
     def obj_delete(self, bundle, **kwargs):
