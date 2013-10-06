@@ -1,5 +1,5 @@
 try:
-    import django.db.models.constants.LOOKUP_SEP
+    from django.db.models.constants import LOOKUP_SEP
 except ImportError:
     # To support Django 1.4 we move to location where Django 1.5+ has constants
     import sys
