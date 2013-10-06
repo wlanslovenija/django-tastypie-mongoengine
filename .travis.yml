@@ -23,4 +23,4 @@ before_script:
  - pep8 tastypie_mongoengine
  - pylint tastypie_mongoengine || true
 script:
- - python -W error setup.py test
+ - python setup.py test
