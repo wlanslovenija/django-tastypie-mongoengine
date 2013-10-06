@@ -9,6 +9,12 @@ class StrangePersonResource(resources.MongoEngineResource):
         queryset = documents.StrangePerson.objects.all()
         excludes = ('hidden',)
 
+class DynamicPersonResource(resources.MongoEngineResource):
+    class Meta:
+        queryset = documents.DynamicPerson.objects.all()
+        excludes = ('hidden',)
+        authorization = tastypie_authorization.Authorization()
+
 class OtherStrangePersonResource(resources.MongoEngineResource):
     class Meta:
         queryset = documents.StrangePerson.objects.all()
@@ -35,6 +41,8 @@ class PersonObjectClassResource(resources.MongoEngineResource):
         allowed_methods = ('get', 'post')
         authorization = tastypie_authorization.Authorization()
         resource_name = 'personobjectclass'
+
+
 
 class OnlySubtypePersonResource(resources.MongoEngineResource):
     class Meta:

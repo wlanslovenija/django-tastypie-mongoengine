@@ -6,6 +6,7 @@ from test_project.test_app.api import resources
 
 v1_api = api.Api(api_name='v1')
 v1_api.register(resources.PersonResource())
+v1_api.register(resources.DynamicPersonResource())
 v1_api.register(resources.PersonObjectClassResource())
 v1_api.register(resources.OnlySubtypePersonResource())
 v1_api.register(resources.IndividualResource())
