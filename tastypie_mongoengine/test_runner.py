@@ -7,6 +7,7 @@ from django.utils import unittest
 from mongoengine import connect, connection
 from mongoengine.django import tests
 
+
 class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     """
     It is the same as in DjangoTestSuiteRunner, but without relational databases.
@@ -48,10 +49,11 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     def teardown_databases(self, old_config, **kwargs):
         connection.get_connection().drop_database(self.db_name)
 
+
 class MongoEngineTestCase(tests.MongoTestCase):
     """
     A bugfixed version, see this `pull request`_.
-    
+
     .. _pull request: https://github.com/hmarr/mongoengine/pull/506
     """
 
@@ -63,6 +65,7 @@ class MongoEngineTestCase(tests.MongoTestCase):
         self.db = connection.get_db()
         super(MongoEngineTestCase, self)._post_teardown()
 
+
 # We also patch Django so that it supports PATCH requests (used by Tastypie)
 # Taken from https://code.djangoproject.com/attachment/ticket/17797/django-test-client-PATCH.patch
 
@@ -70,7 +73,7 @@ def requestfactory_patch(self, path, data={}, content_type=client.MULTIPART_CONT
     """
     Construct a PATCH request.
     """
-    
+
     patch_data = self._encode_data(data, content_type)
 
     parsed = urlparse.urlparse(path)
@@ -84,6 +87,7 @@ def requestfactory_patch(self, path, data={}, content_type=client.MULTIPART_CONT
     }
     r.update(extra)
     return self.request(**r)
+
 
 def client_patch(self, path, data={}, content_type=client.MULTIPART_CONTENT, follow=False, **extra):
     """

@@ -1,12 +1,16 @@
 import tastypie
 from tastypie import bundle as tastypie_bundle, exceptions, fields
 
+
 def link_property(property_name):
     def get(self):
         return getattr(self, property_name)
+
     def set(self, value):
         setattr(self, property_name, value)
+
     return property(get, set)
+
 
 class ObjectId(fields.ApiField):
     """
@@ -16,6 +20,7 @@ class ObjectId(fields.ApiField):
     dehydrated_type = 'objectid'
     help_text = "ID field"
 
+
 class ApiNameMixin(object):
     def get_api_name(self):
         if getattr(self, 'api_name', None) is not None:
@@ -23,6 +28,7 @@ class ApiNameMixin(object):
         if getattr(self, '_resource', None) and self._resource._meta.api_name is not None:
             return self._resource._meta.api_name
         return None
+
 
 class GetRelatedMixin(object):
     def get_related_resource(self, related_instance):
@@ -34,8 +40,10 @@ class GetRelatedMixin(object):
                 related_resource._meta.resource_name = resource._meta.resource_name
         return related_resource
 
+
 class TastypieMongoengineMixin(ApiNameMixin, GetRelatedMixin):
     pass
+
 
 class BuildRelatedMixin(TastypieMongoengineMixin):
     def build_related_resource(self, value, **kwargs):
@@ -51,6 +59,7 @@ class BuildRelatedMixin(TastypieMongoengineMixin):
             return value
         else:
             raise exceptions.ApiFieldError("The '%s' field was not given a dictionary-alike data: %s." % (self.instance_name, value))
+
 
 class ReferenceField(TastypieMongoengineMixin, fields.ToOneField):
     """
@@ -81,6 +90,7 @@ class ReferenceField(TastypieMongoengineMixin, fields.ToOneField):
                 'resource_name': resource._meta.resource_name,
             }),
         }
+
 
 class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
     """
@@ -126,6 +136,7 @@ class EmbeddedDocumentField(BuildRelatedMixin, fields.ToOneField):
         if not bundle:
             return bundle
         return bundle.obj
+
 
 class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
     """

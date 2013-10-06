@@ -1,4 +1,6 @@
-import itertools, re, sys
+import itertools
+import re
+import sys
 
 from django.conf import urls
 from django.core import exceptions, urlresolvers
@@ -23,11 +25,14 @@ except ImportError:
 
 from tastypie_mongoengine import fields
 
-# When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM. 
-# We use a mock Query object to provide the same interface and return query terms by MongoEngine. 
+# When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM.
+# We use a mock Query object to provide the same interface and return query terms by MongoEngine.
 # MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
 
-QUERY_TERMS_ALL = getattr(mongoengine_tranform, 'MATCH_OPERATORS', ('ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere','contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'))
+QUERY_TERMS_ALL = getattr(mongoengine_tranform, 'MATCH_OPERATORS', (
+    'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere', 'contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'
+))
+
 
 class Query(object):
     query_terms = dict([(query_term, None) for query_term in QUERY_TERMS_ALL])
@@ -37,8 +42,10 @@ if not hasattr(queryset.QuerySet, 'query'):
 
 CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
 
+
 class NOT_HYDRATED:
     pass
+
 
 class ListQuerySet(datastructures.SortedDict):
     # Workaround for https://github.com/toastdriven/django-tastypie/pull/670
@@ -126,7 +133,7 @@ class ListQuerySet(datastructures.SortedDict):
         # Tastypie access object_list[0], so we pretend to be
         # a list here (order is same as our iteration order)
         if isinstance(key, (int, long)):
-            return itertools.islice(self, key, key+1).next()
+            return itertools.islice(self, key, key + 1).next()
         # Tastypie also access sliced object_list in paginator
         elif isinstance(key, slice):
             return itertools.islice(self, key.start, key.stop, key.step)
@@ -135,6 +142,7 @@ class ListQuerySet(datastructures.SortedDict):
             # better to check to find possible errors in program logic
             assert isinstance(key, unicode), key
             return super(ListQuerySet, self).__getitem__(key)
+
 
 # Adapted from PEP 257
 def trim(docstring):
@@ -161,6 +169,7 @@ def trim(docstring):
         trimmed.pop(0)
     # Return the first paragraph as a single string:
     return '\n'.join(trimmed).split('\n\n')[0]
+
 
 class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     """
@@ -254,6 +263,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         return new_class
 
+
 class MongoEngineResource(resources.ModelResource):
     """
     Adaptation of ``ModelResource`` to MongoEngine.
@@ -274,12 +284,14 @@ class MongoEngineResource(resources.ModelResource):
 
         for name, obj in embedded:
             embedded_urls.extend((
-                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(
+                    r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'list'},
                     name='api_dispatch_subresource_list',
                 ),
-                urls.url(r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<subresource_pk>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
+                urls.url(
+                    r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)/(?P<subresource_pk>\w[\w-]*)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
                     self.wrap_view('dispatch_subresource'),
                     {'request_type': 'detail'},
                     name='api_dispatch_subresource_detail',
@@ -719,13 +731,14 @@ class MongoEngineResource(resources.ModelResource):
         # we're basically in the same spot as a PUT request. So the rest of this
         # function is cribbed from put_detail.
         self.alter_deserialized_detail_data(request, original_bundle.data)
-        
+
         # Removed request from kwargs, breaking obj_get filter, currently present
         # in tastypie. See https://github.com/toastdriven/django-tastypie/issues/824.
         kwargs = {
             self._meta.detail_uri_name: self.get_bundle_detail_data(original_bundle),
         }
         return self.obj_update(bundle=original_bundle, **kwargs)
+
 
 class MongoEngineListResource(MongoEngineResource):
     """

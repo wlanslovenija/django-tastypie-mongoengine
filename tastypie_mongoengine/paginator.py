@@ -7,6 +7,7 @@ from tastypie import exceptions, paginator
 import bson
 from bson import errors
 
+
 class Paginator(paginator.Paginator):
     """
     Paginator which allows using MongoDB ObjectId as position
