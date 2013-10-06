@@ -3,13 +3,13 @@ from tastypie import bundle as tastypie_bundle, exceptions, fields
 
 
 def link_property(property_name):
-    def get(self):
+    def getter(self):
         return getattr(self, property_name)
 
-    def set(self, value):
+    def setter(self, value):
         setattr(self, property_name, value)
 
-    return property(get, set)
+    return property(getter, setter)
 
 
 class ObjectId(fields.ApiField):

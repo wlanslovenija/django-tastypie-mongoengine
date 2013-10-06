@@ -23,7 +23,7 @@ try:
 except ImportError:
     mongoengine_tranform = None
 
-from tastypie_mongoengine import fields
+from tastypie_mongoengine import fields as tastypie_mongoengine_fields
 
 # When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM.
 # We use a mock Query object to provide the same interface and return query terms by MongoEngine.
@@ -40,10 +40,10 @@ class Query(object):
 if not hasattr(queryset.QuerySet, 'query'):
     queryset.QuerySet.query = Query()
 
-CONTENT_TYPE_RE = re.compile('.*; type=([\w\d-]+);?')
+CONTENT_TYPE_RE = re.compile(r'.*; type=([\w\d-]+);?')
 
 
-class NOT_HYDRATED:
+class NOT_HYDRATED(object):
     pass
 
 
@@ -79,15 +79,15 @@ class ListQuerySet(datastructures.SortedDict):
 
             try:
                 result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
-            except AttributeError as e:
-                raise tastypie_exceptions.InvalidFilterError(e)
+            except AttributeError as ex:
+                raise tastypie_exceptions.InvalidFilterError(ex)
 
         return result
 
     def attrgetter(self, attr):
-        def g(obj):
+        def getter(obj):
             return self.resolve_attr(obj, attr)
-        return g
+        return getter
 
     def resolve_attr(self, obj, attr):
         for name in attr.split(constants.LOOKUP_SEP):
@@ -117,8 +117,8 @@ class ListQuerySet(datastructures.SortedDict):
 
             try:
                 result = [(unicode(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
-            except (AttributeError, IndexError) as e:
-                raise tastypie_exceptions.InvalidSortError(e)
+            except (AttributeError, IndexError) as ex:
+                raise tastypie_exceptions.InvalidSortError(ex)
 
         return ListQuerySet(result)
 
@@ -179,7 +179,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
     This is an internal class and is not used by the end user of tastypie_mongoengine.
     """
 
-    def __new__(self, name, bases, attrs):
+    def __new__(cls, name, bases, attrs):
         meta = attrs.get('Meta')
 
         if meta:
@@ -194,7 +194,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
                     # We ignore queryset value later on, so we can set it here to empty one
                     setattr(meta, 'queryset', ListQuerySet())
 
-        new_class = super(resources.ModelDeclarativeMetaclass, self).__new__(self, name, bases, attrs)
+        new_class = super(resources.ModelDeclarativeMetaclass, cls).__new__(cls, name, bases, attrs)
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
 
@@ -280,9 +280,9 @@ class MongoEngineResource(resources.ModelResource):
         base = super(MongoEngineResource, self).base_urls()
 
         embedded_urls = []
-        embedded = ((name, obj) for name, obj in self.fields.iteritems() if isinstance(obj, fields.EmbeddedListField))
+        embedded = (name for name, obj in self.fields.iteritems() if isinstance(obj, tastypie_mongoengine_fields.EmbeddedListField))
 
-        for name, obj in embedded:
+        for name in embedded:
             embedded_urls.extend((
                 urls.url(
                     r"^(?P<resource_name>%s)/(?P<pk>\w[\w-]*)/(?P<subresource_name>%s)%s$" % (self._meta.resource_name, name, utils.trailing_slash()),
@@ -526,21 +526,21 @@ class MongoEngineResource(resources.ModelResource):
         # MongoEngine exceptions are separate from Django exceptions, we combine them here
         try:
             return super(MongoEngineResource, self).obj_get(bundle=bundle, **kwargs)
-        except self._meta.object_class.DoesNotExist as e:
+        except self._meta.object_class.DoesNotExist as ex:
             exp = models_base.subclass_exception('DoesNotExist', (self._meta.object_class.DoesNotExist, exceptions.ObjectDoesNotExist), self._meta.object_class.DoesNotExist.__module__)
-            raise exp(*e.args)
-        except queryset.DoesNotExist as e:
+            raise exp(*ex.args)
+        except queryset.DoesNotExist as ex:
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
-            raise exp(*e.args)
-        except self._meta.object_class.MultipleObjectsReturned as e:
+            raise exp(*ex.args)
+        except self._meta.object_class.MultipleObjectsReturned as ex:
             exp = models_base.subclass_exception('MultipleObjectsReturned', (self._meta.object_class.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), self._meta.object_class.MultipleObjectsReturned.__module__)
-            raise exp(*e.args)
-        except queryset.MultipleObjectsReturned as e:
+            raise exp(*ex.args)
+        except queryset.MultipleObjectsReturned as ex:
             exp = models_base.subclass_exception('MultipleObjectsReturned', (queryset.MultipleObjectsReturned, exceptions.MultipleObjectsReturned), queryset.MultipleObjectsReturned.__module__)
-            raise exp(*e.args)
-        except mongoengine.ValidationError as e:
+            raise exp(*ex.args)
+        except mongoengine.ValidationError as ex:
             exp = models_base.subclass_exception('DoesNotExist', (queryset.DoesNotExist, exceptions.ObjectDoesNotExist), queryset.DoesNotExist.__module__)
-            raise exp(*e.args)
+            raise exp(*ex.args)
 
     def obj_create(self, bundle, **kwargs):
         self._reset_collection()
@@ -576,8 +576,8 @@ class MongoEngineResource(resources.ModelResource):
     def save(self, bundle, skip_errors=False):
         try:
             return super(MongoEngineResource, self).save(bundle, skip_errors)
-        except mongoengine.ValidationError as e:
-            raise exceptions.ValidationError(e.message)
+        except mongoengine.ValidationError as ex:
+            raise exceptions.ValidationError(ex.message)
 
     def save_m2m(self, bundle):
         # Our related documents are not stored in a queryset, but a list,
@@ -630,7 +630,7 @@ class MongoEngineResource(resources.ModelResource):
         elif isinstance(f, mongoengine.GeoPointField):
             result = tastypie_fields.ListField
         elif isinstance(f, mongoengine.ObjectIdField):
-            result = fields.ObjectId
+            result = tastypie_mongoengine_fields.ObjectId
 
         return result
 
@@ -714,8 +714,6 @@ class MongoEngineResource(resources.ModelResource):
                 final_fields[name].field = f.field
 
         return final_fields
-
-        raise IndexError("Embedded document with primary key '%s' not found." % pk)
 
     def update_in_place(self, request, original_bundle, new_data):
         """
@@ -803,7 +801,7 @@ class MongoEngineListResource(MongoEngineResource):
             object_list = []
             for obj in getattr(self.instance, self.attribute):
                 pk = getattr(obj, pk_field)
-                obj.__class__.pk = fields.link_property(pk_field)
+                obj.__class__.pk = tastypie_mongoengine_fields.link_property(pk_field)
                 object_list.append((unicode(pk), obj))
             return ListQuerySet(object_list)
 
@@ -829,7 +827,7 @@ class MongoEngineListResource(MongoEngineResource):
             if pk_field is None:
                 bundle.obj.pk = len(object_list)
             else:
-                bundle.obj.__class__.pk = fields.link_property(pk_field)
+                bundle.obj.__class__.pk = tastypie_mongoengine_fields.link_property(pk_field)
 
             object_list.append(bundle.obj)
 
@@ -840,8 +838,8 @@ class MongoEngineListResource(MongoEngineResource):
             m2m_bundle = self.hydrate_m2m(bundle)
             self.save_m2m(m2m_bundle)
             return bundle
-        except mongoengine.ValidationError as e:
-            raise exceptions.ValidationError(e.message)
+        except mongoengine.ValidationError as ex:
+            raise exceptions.ValidationError(ex.message)
 
     def find_embedded_document(self, objects, pk_field, pk):
         # TODO: Would it be faster to traverse in reversed direction? Because probably last elements are fetched more often in practice?
@@ -849,6 +847,8 @@ class MongoEngineListResource(MongoEngineResource):
         for i, obj in enumerate(objects):
             if getattr(obj, pk_field) == pk:
                 return i
+
+        raise IndexError("Embedded document with primary key '%s' not found." % pk)
 
     # TODO: Use skip_errors?
     def obj_update(self, bundle, skip_errors=False, **kwargs):
@@ -876,8 +876,8 @@ class MongoEngineListResource(MongoEngineResource):
             m2m_bundle = self.hydrate_m2m(bundle)
             self.save_m2m(m2m_bundle)
             return bundle
-        except mongoengine.ValidationError as e:
-            raise exceptions.ValidationError(e.message)
+        except mongoengine.ValidationError as ex:
+            raise exceptions.ValidationError(ex.message)
 
     def obj_delete(self, bundle, **kwargs):
         obj = kwargs.pop('_obj', None)

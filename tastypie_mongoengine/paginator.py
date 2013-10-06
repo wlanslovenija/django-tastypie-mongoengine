@@ -57,18 +57,18 @@ class Paginator(paginator.Paginator):
         # TODO: Very very inefficient, optimize!
 
         if limit < 0:
-            it = reversed(self.objects)
+            iterator = reversed(self.objects)
             limit = -limit
         else:
-            it = self.objects.__iter__()
+            iterator = self.objects.__iter__()
 
         if limit == 0:
             limit = None
 
-        it = itertools.dropwhile(lambda obj: obj.pk != offset, it)
-        it = itertools.islice(it, limit)
+        iterator = itertools.dropwhile(lambda obj: obj.pk != offset, iterator)
+        iterator = itertools.islice(iterator, limit)
 
-        return it
+        return iterator
 
     def get_previous(self, limit, offset):
         if isinstance(offset, int):
