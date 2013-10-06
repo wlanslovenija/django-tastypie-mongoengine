@@ -73,7 +73,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('person'), '{"name": {}}', content_type='application/json')
         self.assertContains(response, 'only accepts string values', status_code=400)
 
-        response = self.c.post(self.resourceListURI('person'), '{"name": "Person 2", "optional": null}', content_type='application/json')
+        response = self.c.post(self.resourceListURI('person'), '{"name": "Person 2 null", "optional": null}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 2", "optional": "Optional"}', content_type='application/json')
@@ -92,7 +92,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.post(self.resourceListURI('person'), '{"name": "Person 3", "additional": "Additional"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
-        # Referenced resources can be matched through fields if they match uniquely
+        # Referenced resources can be matched through fields if an unique field is used
         response = self.c.post(self.resourceListURI('customer'), '{"person": {"name": "Person 1"}}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 

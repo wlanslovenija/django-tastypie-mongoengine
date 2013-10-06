@@ -15,7 +15,7 @@ class InheritableEmbeddedDocument(mongoengine.EmbeddedDocument):
     }
 
 class Person(InheritableDocument):
-    name = mongoengine.StringField(max_length=200, required=True)
+    name = mongoengine.StringField(max_length=200, required=True, unique=True)
     optional = mongoengine.StringField(max_length=200, required=False)
     hidden = mongoengine.StringField(max_length=200, required=False)
 
@@ -107,7 +107,7 @@ class AutoAllocationFieldTest(InheritableDocument):
         super(AutoAllocationFieldTest, self).save(*args, **kwargs)
 
 class Exporter(InheritableDocument):
-    name = mongoengine.StringField(required=True)
+    name = mongoengine.StringField(required=True, unique=True)
 
 class PipeExporterEmbedded(InheritableEmbeddedDocument):
     name = mongoengine.StringField(required=True)
