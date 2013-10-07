@@ -23,7 +23,7 @@ For development GitHub_ is used, so source code and issue tracker is found
 there_.
 
 .. _GitHub: https://github.com/
-.. _there: https://github.com/mitar/django-tastypie-mongoengine
+.. _there: https://github.com/wlanslovenija/django-tastypie-mongoengine
 
 Indices and tables
 ==================

@@ -9,4 +9,4 @@ This will install necessary dependencies as well. In ``tests`` subdirectory ther
 
 To test different versions at the same time, `Travis CI`_ is used.
 
-.. _Travis CI: https://github.com/mitar/django-tastypie-mongoengine
+.. _Travis CI: https://github.com/wlanslovenija/django-tastypie-mongoengine

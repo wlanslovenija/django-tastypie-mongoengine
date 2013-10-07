@@ -20,4 +20,4 @@ How to use?
 -----------
 
 * See documentation: http://django-tastypie-mongoengine.readthedocs.org
-* See usage in tests: http://github.com/mitar/django-tastypie-mongoengine/tree/master/tests
+* See usage in tests: http://github.com/wlanslovenija/django-tastypie-mongoengine/tree/master/tests
