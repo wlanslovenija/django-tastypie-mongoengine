@@ -24,22 +24,9 @@ Simple Example
             queryset = documents.Person.objects.all()
             allowed_methods = ('get', 'post', 'put', 'delete')
             authorization = authorization.Authorization()
-            
-EmbeddedDocument
-================
 
-When you are using ``EmbeddedDocument`` in your MongoEngine documents, you must define ``object_class``
-in Meta class of your resource declaration instead of queryset::
-
-    class EmbeddedPersonResource(resources.MongoEngineResource):
-        class Meta:
-            object_class = documents.EmbeddedPerson
-        ...
-    
-When you are using normal MongoEngine ``Document`` you can use ``queryset`` or ``object_class``.
-
-Related and Embedded Fields
-===========================
+Defining fields
+---------------
 
 Most document fields are automatically mapped to corresponding Tastypie fields
 but some are not. Of course, you can also manually define (override) those
@@ -58,6 +45,33 @@ automatically mapped fields if, for example, you want to define some read-only.
     ``attribute`` to document's field name. It is not set automatically and
     if it is not set it is assumed that you will be processing this field
     manually (in for example, resource's ``hydrate`` method).
+
+Some fields cannot be mapped automatically so you have to define them manually. Like `related and embedded
+fields`_, but special fields like `SequenceField`_ as well::
+
+    sequence_field = tastypie_fields.IntegerField(attribute='sequence_field')
+
+.. _SequenceField: https://mongoengine-odm.readthedocs.org/en/latest/apireference.html#mongoengine.fields.SequenceField
+
+EmbeddedDocument
+================
+
+When you are using ``EmbeddedDocument`` in your MongoEngine documents, you must define ``object_class``
+in Meta class of your resource declaration instead of queryset::
+
+    class EmbeddedPersonResource(resources.MongoEngineResource):
+        class Meta:
+            object_class = documents.EmbeddedPerson
+        ...
+    
+When you are using normal MongoEngine ``Document`` you can use ``queryset`` or ``object_class``.
+
+.. _related and embedded fields:
+
+Related and Embedded Fields
+===========================
+
+Related and embedded fields have to be defined manually always.
 
 ReferenceField
 --------------
