@@ -1,7 +1,9 @@
 #!/usr/bin/env python
-import os, sys
+import os
+import sys
 
 sys.path.insert(0, os.path.abspath(os.path.dirname(__file__)))
+
 
 def runtests():
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "test_project.settings")
