@@ -32,5 +32,5 @@ party copyright with possibly different licensing conditions. Make sure you
 check and respect also those conditions.
 
 Some program code is based on code from django-tastypie-nonrel
-<https://github.com/andresdouglas/django-tastypie-nonrel> by Andres Douglas
-<andres.douglas@gmail.com>. License unknown.
+<https://github.com/andresdouglas/django-tastypie-nonrel> by Daniel Lindsley,
+Josh Bohde, Andres Douglas. Licensed under BSD license.
