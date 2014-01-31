@@ -414,11 +414,16 @@ class MongoEngineResource(resources.ModelResource):
 
     def dispatch(self, request_type, request, **kwargs):
         # We process specially only requests with payload
+        if 'HTTP_X_HTTP_METHOD_OVERRIDE' in request.META:
+            the_method = request.META['HTTP_X_HTTP_METHOD_OVERRIDE'].lower()
+        else:
+            the_method = request.method.lower()
+
         if not request.body:
-            assert request.method.lower() not in ('put', 'post', 'patch'), request.method
+            assert the_method not in ('put', 'post', 'patch'), the_method
             return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
 
-        assert request.method.lower() in ('put', 'post', 'patch'), request.method
+        assert the_method in ('put', 'post', 'patch'), the_method
 
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 
