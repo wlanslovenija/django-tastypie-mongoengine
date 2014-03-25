@@ -231,7 +231,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
             self._to_class_with_listresource = type(base.__name__, (base, resources.MongoEngineListResource), {
                 '__module__': base.__module__,
                 '_parent': self._resource,
-                'attribute': self.instance_name,
+                'attribute': self.attribute or self.instance_name,
             })
         return self._to_class_with_listresource
 
