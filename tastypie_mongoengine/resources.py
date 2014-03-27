@@ -911,7 +911,7 @@ class MongoEngineListResource(MongoEngineResource):
 
         kwargs = {
             'resource_name': self.parent._meta.resource_name,
-            'subresource_name': self.attribute,
+            'subresource_name': self._meta.resource_name or self.attribute,
             'subresource_pk': obj.pk,
         }
 
