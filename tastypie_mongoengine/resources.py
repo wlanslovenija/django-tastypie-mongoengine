@@ -212,7 +212,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
                     del(new_class.base_fields[field_name])
             if field_name in new_class.declared_fields:
                 continue
-            if len(include_fields) and not field_name in include_fields:
+            if len(include_fields) and field_name not in include_fields:
                 del(new_class.base_fields[field_name])
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
@@ -221,17 +221,17 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
 
         if getattr(new_class._meta, 'include_absolute_url', True):
-            if not 'absolute_url' in new_class.base_fields:
+            if 'absolute_url' not in new_class.base_fields:
                 new_class.base_fields['absolute_url'] = tastypie_fields.CharField(attribute='get_absolute_url', readonly=True)
-        elif 'absolute_url' in new_class.base_fields and not 'absolute_url' in attrs:
+        elif 'absolute_url' in new_class.base_fields and 'absolute_url' not in attrs:
             del(new_class.base_fields['absolute_url'])
 
         type_map = getattr(new_class._meta, 'polymorphic', {})
 
         if type_map and getattr(new_class._meta, 'include_resource_type', True):
-            if not 'resource_type' in new_class.base_fields:
+            if 'resource_type' not in new_class.base_fields:
                 new_class.base_fields['resource_type'] = tastypie_fields.CharField(readonly=True)
-        elif 'resource_type' in new_class.base_fields and not 'resource_type' in attrs:
+        elif 'resource_type' in new_class.base_fields and 'resource_type' not in attrs:
             del(new_class.base_fields['resource_type'])
 
         seen_types = set()
@@ -671,8 +671,8 @@ class MongoEngineResource(resources.ModelResource):
                 continue
 
             # TODO: Might need it in the future
-            #if cls.should_skip_field(f):
-            #    continue
+            # if cls.should_skip_field(f):
+            #     continue
 
             api_field_class = cls.api_field_from_mongo_field(f)
 
