@@ -37,7 +37,7 @@ if __name__ == '__main__':
         install_requires = (
             'Django>=1.4',
             'django-tastypie>=0.9.12,<=0.10.0',
-            'mongoengine>=0.8.1,<0.8.2',
+            'mongoengine>=0.8.1',
             'python-dateutil>=2.1',
             'lxml',
             'defusedxml',
@@ -49,7 +49,7 @@ if __name__ == '__main__':
         tests_require = (
             'Django>=1.4',
             'django-tastypie>=0.9.12,<=0.10.0',
-            'mongoengine>=0.8.1,<0.8.2',
+            'mongoengine>=0.8.1',
             'python-dateutil>=2.1',
             'lxml',
             'defusedxml',
