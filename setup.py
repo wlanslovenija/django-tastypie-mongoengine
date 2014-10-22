@@ -36,7 +36,7 @@ if __name__ == '__main__':
         zip_safe = False,
         install_requires = (
             'Django>=1.4',
-            'django-tastypie>=0.9.12,<=0.10.0',
+            'django-tastypie>=0.9.12',
             'mongoengine>=0.8.1,<0.8.2',
             'python-dateutil>=2.1',
             'lxml',
