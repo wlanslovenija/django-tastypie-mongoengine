@@ -25,6 +25,10 @@ except ImportError:
 
 from tastypie_mongoengine import fields as tastypie_mongoengine_fields
 
+from tastypie.exceptions import NotFound
+from django.core.urlresolvers import Resolver404
+
+
 # When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM.
 # We use a mock Query object to provide the same interface and return query terms by MongoEngine.
 # MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
@@ -263,13 +267,39 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
 
         return new_class
 
-
 class MongoEngineResource(resources.ModelResource):
     """
     Adaptation of ``ModelResource`` to MongoEngine.
     """
 
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
+
+    def get_via_uri(self, uri, request=None):
+        """
+        This pulls apart the salient bits of the URI and populates the
+        resource via a ``obj_get``.
+
+        Optionally accepts a ``request``.
+
+        If you need custom behavior based on other portions of the URI,
+        simply override this method.
+        """
+        try:
+            return super(MongoEngineResource, self).get_via_uri(uri, request)
+        except (NotFound, Resolver404):
+            # check if this is a polymorphic resource, if so, check the uri against the resources in self._meta.polymorphic
+            type_map = getattr(self._meta, 'polymorphic', {})
+            for type_, resource in type_map.iteritems():
+                try:
+                    return resource().get_via_uri(uri, request)
+                except (NotFound, Resolver404):
+                    pass
+            # the uri wasn't found at any of the polymorphic resources, it is an incorrect URI for this resource
+            raise
+        except Exception, e:
+            raise e
+
+    # Data preparation.
 
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         field = self.fields[subresource_name]
@@ -334,6 +364,7 @@ class MongoEngineResource(resources.ModelResource):
     def _wrap_polymorphic(self, resource, fun):
         object_class = self._meta.object_class
         qs = self._meta.queryset
+        resource_name = self._meta.resource_name
         base_fields = self.base_fields
         fields = self.fields
         try:
@@ -351,6 +382,7 @@ class MongoEngineResource(resources.ModelResource):
         finally:
             self._meta.object_class = object_class
             self._meta.queryset = qs
+            self._meta.resource_name = resource_name
             self.base_fields = base_fields
             self.fields = fields
 
