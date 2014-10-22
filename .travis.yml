@@ -5,7 +5,7 @@ env:
  - DJANGO_VERSION==1.7 TASTYPIE_VERSION=">=0.9.12" MONGOENGINE_VERSION=">=0.8.1,<0.8.2"
 services: mongodb
 install:
- - pip install "Django$BEFORE_DJANGO_VERSION"
+ - pip install "Django$DJANGO_VERSION"
  - pip install "django-tastypie$TASTYPIE_VERSION"
  - pip install "mongoengine$MONGOENGINE_VERSION"
  - pip install pep8 --use-mirrors
