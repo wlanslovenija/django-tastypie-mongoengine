@@ -4,6 +4,11 @@ from django.conf import settings
 from django.test import client, simple, testcases, runner
 from django.utils import unittest
 
+try:
+    from django.test.runner import reorder_suite
+except ImportError:
+    from django.test.simple import reorder_suite
+
 from mongoengine import connect, connection
 from mongoengine.django import tests
 
@@ -40,7 +45,7 @@ class MongoEngineTestSuiteRunner(simple.DjangoTestSuiteRunner):
     def build_suite(self, test_labels, extra_tests=None, **kwargs):
         suite = super(MongoEngineTestSuiteRunner, self).build_suite(test_labels, extra_tests=None, **kwargs)
         suite = self._filter_suite(suite)
-        return runner.reorder_suite(suite, (testcases.TestCase,))
+        return reorder_suite(suite, (testcases.TestCase,))
 
     def setup_databases(self, **kwargs):
         connection.disconnect()
