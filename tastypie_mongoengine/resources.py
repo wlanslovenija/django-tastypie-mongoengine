@@ -288,8 +288,7 @@ class MongoEngineResource(resources.ModelResource):
         try:
             return super(MongoEngineResource, self).get_via_uri(uri, request)
         except (NotFound, Resolver404):
-            # check if this is a polymorphic resource, if so,
-            # check the uri against the resources in self._meta.polymorphic
+            # if this is a polymorphic resource check the uri against the resources in self._meta.polymorphic
             type_map = getattr(self._meta, 'polymorphic', {})
             for type_, resource in type_map.iteritems():
                 try:
