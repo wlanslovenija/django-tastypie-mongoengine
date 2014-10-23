@@ -23,10 +23,7 @@ from test_project.test_app.api import resources
 @utils.override_settings(DEBUG=True)
 class BasicTest(test_runner.MongoEngineTestCase):
     api_name = 'v1'
-    # c = client.Client()
-
-    def setUp(self):
-        self.c = client.Client()
+    c = client.Client()
 
     def resourceListURI(self, resource_name):
         return urlresolvers.reverse('api_dispatch_list', kwargs={'api_name': self.api_name, 'resource_name': resource_name})
