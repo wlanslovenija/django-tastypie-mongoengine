@@ -1,7 +1,7 @@
 import urlparse
 
 from django.conf import settings
-from django.test import client, simple, testcases, runner
+from django.test import client, simple, testcases
 from django.utils import unittest
 
 try:
