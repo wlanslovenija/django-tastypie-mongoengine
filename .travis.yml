@@ -27,7 +27,7 @@ matrix:
       env: DJANGO_VERSION="" TASTYPIE_VERSION="" MONGOENGINE_VERSION=">=0.8.1,<0.8.2"
   allow_failures: # tastypie 0.10.0 is incompatible with django1.7, imports django.utils.simplejson
     - python: 2.7
-      env: DJANGO_VERSION="" TASTYPIE_VERSION="<0.10.0" MONGOENGINE_VERSION=">=0.8.1,<0.8.2"
+      env: DJANGO_VERSION="" TASTYPIE_VERSION="<0.11.0" MONGOENGINE_VERSION=">=0.8.1,<0.8.2"
 
 services: mongodb
 install:
