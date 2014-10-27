@@ -4,7 +4,7 @@ import urlparse
 
 from django.core import exceptions, urlresolvers
 from django.test import client, utils
-from django.utils import simplejson as json
+import json
 
 import tastypie
 from tastypie import authorization as tastypie_authorization
@@ -625,7 +625,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response['objects'][1]['resource_uri'], embedded2_uri)
 
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3"}', content_type='application/json')
-        self.assertRedirects(response, embedded3_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(embedded3_uri))
 
         response = self.c.get(embedded3_uri)
         self.assertEqual(response.status_code, 200)
@@ -656,7 +657,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertEqual(response.status_code, 404)
 
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 4", "optional": "Foobar"}', content_type='application/json')
-        self.assertRedirects(response, embedded4_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(embedded4_uri))
+        # self.assertRedirects(response, embedded4_uri, status_code=201)
 
         response = self.c.get(embedded4_uri)
         self.assertEqual(response.status_code, 200)
@@ -996,7 +999,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.put(person1_uri, '{"name": "Person 1a", "strange": "something"}', content_type='application/json; type=strangeperson')
         # Object got replaced, so we get 201 with location, but we do not want a
         # new object, so redirect should match initial resource URL
-        self.assertRedirects(response, person1_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(person1_uri))
+        # self.assertRedirects(response, person1_uri, status_code=201)
 
         response = self.c.get(person1_uri)
         self.assertEqual(response.status_code, 200)
@@ -1018,7 +1023,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         # Changing resource type again (subtype->type)
         response = self.c.put(person1_uri, '{"name": "Person 1c"}', content_type='application/json; type=person')
-        self.assertRedirects(response, person1_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(person1_uri))
+        # self.assertRedirects(response, person1_uri, status_code=201)
 
         response = self.c.get(person1_uri)
         self.assertEqual(response.status_code, 200)
@@ -1029,7 +1036,9 @@ class BasicTest(test_runner.MongoEngineTestCase):
 
         response = self.c.put(person2_uri, '{"name": "Person 2c", "strange": "something"}', content_type='application/json; type=person')
         # Additional fields are ignored
-        self.assertRedirects(response, person2_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(person2_uri))
+        # self.assertRedirects(response, person2_uri, status_code=201)
 
         response = self.c.get(person2_uri)
         self.assertEqual(response.status_code, 200)
@@ -1068,7 +1077,10 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertContains(response, 'field has no data', status_code=400)
 
         response = self.c.post(embeddedresource_uri, '{"name": "Embedded person 3", "strange": "Strange"}', content_type='application/json; type=strangeperson')
-        self.assertRedirects(response, embedded3_uri, status_code=201)
+        self.assertEqual(response.status_code, 201)
+        self.assertTrue(response.get('location').endswith(embedded3_uri))
+        # response.url = response.get('location')
+        # self.assertRedirects(response, embedded3_uri, status_code=201)
 
         response = self.c.get(embedded3_uri)
         self.assertEqual(response.status_code, 200)
@@ -1526,7 +1538,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         self.assertContains(response, 'Field is required', status_code=400)
 
     def test_readonly_embedded(self):
-        response = self.c.post(self.resourceListURI('readonlyparent'), '{"name": "A readonly embedded test"}', content_type='application/json')
+        uri = self.resourceListURI('readonlyparent')
+        response = self.c.post(uri, '{"name": "A readonly embedded test"}', content_type='application/json')
         self.assertEqual(response.status_code, 201)
 
         document_uri = response['location']
