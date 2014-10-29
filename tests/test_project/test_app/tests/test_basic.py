@@ -484,6 +484,23 @@ class BasicTest(test_runner.MongoEngineTestCase):
         response = self.c.get(person1_uri)
         self.assertEqual(response.status_code, 404)
 
+        # Testing x-override
+
+        response = self.c.post(self.resourceListURI('person'), '{"name": "Person X"}', content_type='application/json')
+        self.assertEqual(response.status_code, 201)
+
+        person2_uri = response['location']
+
+        # Testing PATCH with x-override
+
+        response = self.c.post(person2_uri, '{"name": "Person X PATCHED"}', HTTP_X_HTTP_METHOD_OVERRIDE='patch', content_type='application/json')
+        self.assertEqual(response.status_code, 202)
+
+        # Testing DELETE with x-override
+
+        response = self.c.post(person2_uri, HTTP_X_HTTP_METHOD_OVERRIDE='delete')
+        self.assertEqual(response.status_code, 204)
+
     def test_objectclass(self):
         response = self.c.get(self.resourceListURI('personobjectclass'))
 
