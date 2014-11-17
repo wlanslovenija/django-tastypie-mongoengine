@@ -25,6 +25,10 @@ except ImportError:
 
 from tastypie_mongoengine import fields as tastypie_mongoengine_fields
 
+from tastypie.exceptions import NotFound
+from django.core.urlresolvers import Resolver404
+
+
 # When Tastypie accesses query terms used by QuerySet it assumes the interface of Django ORM.
 # We use a mock Query object to provide the same interface and return query terms by MongoEngine.
 # MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
@@ -212,7 +216,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
                     del(new_class.base_fields[field_name])
             if field_name in new_class.declared_fields:
                 continue
-            if len(include_fields) and not field_name in include_fields:
+            if len(include_fields) and field_name not in include_fields:
                 del(new_class.base_fields[field_name])
             if len(excludes) and field_name in excludes:
                 del(new_class.base_fields[field_name])
@@ -221,17 +225,17 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         new_class.base_fields.update(new_class.get_fields(include_fields, excludes))
 
         if getattr(new_class._meta, 'include_absolute_url', True):
-            if not 'absolute_url' in new_class.base_fields:
+            if 'absolute_url' not in new_class.base_fields:
                 new_class.base_fields['absolute_url'] = tastypie_fields.CharField(attribute='get_absolute_url', readonly=True)
-        elif 'absolute_url' in new_class.base_fields and not 'absolute_url' in attrs:
+        elif 'absolute_url' in new_class.base_fields and 'absolute_url' not in attrs:
             del(new_class.base_fields['absolute_url'])
 
         type_map = getattr(new_class._meta, 'polymorphic', {})
 
         if type_map and getattr(new_class._meta, 'include_resource_type', True):
-            if not 'resource_type' in new_class.base_fields:
+            if 'resource_type' not in new_class.base_fields:
                 new_class.base_fields['resource_type'] = tastypie_fields.CharField(readonly=True)
-        elif 'resource_type' in new_class.base_fields and not 'resource_type' in attrs:
+        elif 'resource_type' in new_class.base_fields and 'resource_type' not in attrs:
             del(new_class.base_fields['resource_type'])
 
         seen_types = set()
@@ -270,6 +274,33 @@ class MongoEngineResource(resources.ModelResource):
     """
 
     __metaclass__ = MongoEngineModelDeclarativeMetaclass
+
+    def get_via_uri(self, uri, request=None):
+        """
+        This pulls apart the salient bits of the URI and populates the
+        resource via a ``obj_get``.
+
+        Optionally accepts a ``request``.
+
+        If you need custom behavior based on other portions of the URI,
+        simply override this method.
+        """
+        try:
+            return super(MongoEngineResource, self).get_via_uri(uri, request)
+        except (NotFound, Resolver404):
+            # if this is a polymorphic resource check the uri against the resources in self._meta.polymorphic
+            type_map = getattr(self._meta, 'polymorphic', {})
+            for type_, resource in type_map.iteritems():
+                try:
+                    return resource().get_via_uri(uri, request)
+                except (NotFound, Resolver404):
+                    pass
+            # the uri wasn't found at any of the polymorphic resources, it is an incorrect URI for this resource
+            raise
+        except Exception, e:
+            raise e
+
+    # Data preparation.
 
     def dispatch_subresource(self, request, subresource_name, **kwargs):
         field = self.fields[subresource_name]
@@ -334,6 +365,7 @@ class MongoEngineResource(resources.ModelResource):
     def _wrap_polymorphic(self, resource, fun):
         object_class = self._meta.object_class
         qs = self._meta.queryset
+        resource_name = self._meta.resource_name
         base_fields = self.base_fields
         fields = self.fields
         try:
@@ -351,6 +383,7 @@ class MongoEngineResource(resources.ModelResource):
         finally:
             self._meta.object_class = object_class
             self._meta.queryset = qs
+            self._meta.resource_name = resource_name
             self.base_fields = base_fields
             self.fields = fields
 
@@ -381,11 +414,18 @@ class MongoEngineResource(resources.ModelResource):
 
     def dispatch(self, request_type, request, **kwargs):
         # We process specially only requests with payload
+        if 'HTTP_X_HTTP_METHOD_OVERRIDE' in request.META:
+            the_method = request.META['HTTP_X_HTTP_METHOD_OVERRIDE'].lower()
+            if the_method == 'delete':
+                return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
+        else:
+            the_method = request.method.lower()
+
         if not request.body:
-            assert request.method.lower() not in ('put', 'post', 'patch'), request.method
+            assert the_method not in ('put', 'post', 'patch'), the_method
             return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
 
-        assert request.method.lower() in ('put', 'post', 'patch'), request.method
+        assert the_method in ('put', 'post', 'patch'), the_method + ":" + request.body
 
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 
@@ -671,8 +711,8 @@ class MongoEngineResource(resources.ModelResource):
                 continue
 
             # TODO: Might need it in the future
-            #if cls.should_skip_field(f):
-            #    continue
+            # if cls.should_skip_field(f):
+            #     continue
 
             api_field_class = cls.api_field_from_mongo_field(f)
 
