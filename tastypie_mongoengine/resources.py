@@ -5,7 +5,12 @@ import sys
 from django.conf import urls
 from django.core import exceptions, urlresolvers
 from django.db.models import base as models_base
-from collections import OrderedDict
+try:
+    # Before Django 1.8
+    from django.utils.datastructures import SortedDict as OrderedDict
+except ImportError:
+    # After Django 1.8
+    from collections import OrderedDict
 
 try:
     # Django 1.5+
