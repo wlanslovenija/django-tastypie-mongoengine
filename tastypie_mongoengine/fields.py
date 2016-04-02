@@ -1,4 +1,3 @@
-from past.builtins import basestring
 from builtins import object
 import tastypie
 from tastypie import bundle as tastypie_bundle, exceptions, fields

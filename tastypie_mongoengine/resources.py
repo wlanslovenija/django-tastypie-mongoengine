@@ -8,7 +8,7 @@ import sys
 from django.conf import urls
 from django.core import exceptions, urlresolvers
 from django.db.models import base as models_base
-#from future.utils import with_metaclass
+from future.utils import with_metaclass
 try:
     # Before Django 1.8
     from django.utils.datastructures import SortedDict as OrderedDict
