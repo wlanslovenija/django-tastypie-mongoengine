@@ -1,4 +1,6 @@
-import urlparse
+from future import standard_library
+standard_library.install_aliases()
+import urllib.parse
 
 from django.conf import settings
 from django.test import client, simple, testcases
@@ -82,7 +84,7 @@ def requestfactory_patch(self, path, data=None, content_type=client.MULTIPART_CO
     data = data or {}
     patch_data = self._encode_data(data, content_type)
 
-    parsed = urlparse.urlparse(path)
+    parsed = urllib.parse.urlparse(path)
     request = {
         'CONTENT_LENGTH': len(patch_data),
         'CONTENT_TYPE': content_type,
