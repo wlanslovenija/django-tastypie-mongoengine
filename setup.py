@@ -36,8 +36,8 @@ if __name__ == '__main__':
         zip_safe = False,
         install_requires = (
             'Django>=1.5',
-            'django-tastypie>=0.9.12',
-            'mongoengine>=0.8.1,<0.8.2',
+            'django-tastypie>=0.13.3',
+            'mongoengine>=0.8.8',
             'python-dateutil>=2.1',
             'lxml',
             'defusedxml',
@@ -48,8 +48,8 @@ if __name__ == '__main__':
         test_suite = 'tests.runtests.runtests',
         tests_require = (
             'Django>=1.5',
-            'django-tastypie>=0.9.12',
-            'mongoengine>=0.8.1,<0.8.2',
+            'django-tastypie>=0.13.3',
+            'mongoengine>=0.8.8',
             'python-dateutil>=2.1',
             'lxml',
             'defusedxml',
