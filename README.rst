@@ -3,6 +3,8 @@ django-tastypie-mongoengine
 
 This Django application provides MongoEngine_ support for django-tastypie_.
 
+**This project is unmaintained. If anyone wants to step up and take over maintenance, please open an issue.**
+
 Requirements
 ------------
 
