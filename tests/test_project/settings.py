@@ -1,3 +1,4 @@
+import mongoengine
 # Django settings for test_project project
 
 DEBUG = True
@@ -40,7 +41,6 @@ INSTALLED_APPS = (
 
 MONGO_DATABASE_NAME = 'test_project'
 
-import mongoengine
 mongoengine.connect(MONGO_DATABASE_NAME)
 
 if mongoengine.VERSION >= (0, 8, 0):
