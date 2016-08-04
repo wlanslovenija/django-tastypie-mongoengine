@@ -853,6 +853,9 @@ class MongoEngineListResource(MongoEngineResource):
             return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, **kwargs):
+
+        self.authorized_create_detail(self.get_object_list(bundle.request), bundle)
+
         try:
             bundle.obj = self._meta.object_class()
 
@@ -892,6 +895,9 @@ class MongoEngineListResource(MongoEngineResource):
 
     # TODO: Use skip_errors?
     def obj_update(self, bundle, skip_errors=False, **kwargs):
+
+        self.authorized_update_detail(self.get_object_list(bundle.request), bundle)
+
         try:
             if not bundle.obj or not getattr(bundle.obj, 'pk', None):
                 try:
@@ -920,6 +926,9 @@ class MongoEngineListResource(MongoEngineResource):
             raise exceptions.ValidationError(ex.message)
 
     def obj_delete(self, bundle, **kwargs):
+
+        self.authorized_delete_detail(self.get_object_list(bundle.request), bundle)
+
         obj = kwargs.pop('_obj', None)
 
         if not getattr(obj, 'pk', None):
