@@ -10,7 +10,7 @@ try:
 except ImportError:
     pass
 
-VERSION = '0.4.6'
+VERSION = '0.4.6a'
 
 if __name__ == '__main__':
     setup(
@@ -37,6 +37,7 @@ if __name__ == '__main__':
         install_requires = (
             'Django>=1.5',
             'django-tastypie>=0.13.3',
+            'future',
             'mongoengine>=0.8.8',
             'python-dateutil>=2.1',
             'lxml',
@@ -49,6 +50,7 @@ if __name__ == '__main__':
         tests_require = (
             'Django>=1.5',
             'django-tastypie>=0.13.3',
+            'future',
             'mongoengine>=0.8.8',
             'python-dateutil>=2.1',
             'lxml',
