@@ -1,3 +1,6 @@
+from builtins import next
+from builtins import str
+from builtins import object
 import itertools
 import re
 import sys
@@ -5,7 +8,13 @@ import sys
 from django.conf import urls
 from django.core import exceptions, urlresolvers
 from django.db.models import base as models_base
-from django.utils import datastructures
+from future.utils import with_metaclass
+try:
+    # Before Django 1.8
+    from django.utils.datastructures import SortedDict as OrderedDict
+except ImportError:
+    # After Django 1.8
+    from collections import OrderedDict
 
 try:
     # Django 1.5+
@@ -18,11 +27,7 @@ from tastypie import bundle as tastypie_bundle, exceptions as tastypie_exception
 
 import mongoengine
 from mongoengine import fields as mongoengine_fields, queryset
-try:
-    from mongoengine.queryset import tranform as mongoengine_tranform
-except ImportError:
-    mongoengine_tranform = None
-
+from mongoengine.queryset.transform import MATCH_OPERATORS
 from tastypie_mongoengine import fields as tastypie_mongoengine_fields
 
 from tastypie.exceptions import NotFound
@@ -33,13 +38,8 @@ from django.core.urlresolvers import Resolver404
 # We use a mock Query object to provide the same interface and return query terms by MongoEngine.
 # MongoEngine code might not expose these query terms, so we fallback to hard-coded values.
 
-QUERY_TERMS_ALL = getattr(mongoengine_tranform, 'MATCH_OPERATORS', (
-    'ne', 'gt', 'gte', 'lt', 'lte', 'in', 'nin', 'mod', 'all', 'size', 'exists', 'not', 'within_distance', 'within_spherical_distance', 'within_box', 'within_polygon', 'near', 'near_sphere', 'contains', 'icontains', 'startswith', 'istartswith', 'endswith', 'iendswith', 'exact', 'iexact', 'match'
-))
-
-
 class Query(object):
-    query_terms = dict([(query_term, None) for query_term in QUERY_TERMS_ALL])
+    query_terms = set(MATCH_OPERATORS) 
 
 if not hasattr(queryset.QuerySet, 'query'):
     queryset.QuerySet.query = Query()
@@ -51,7 +51,7 @@ class NOT_HYDRATED(object):
     pass
 
 
-class ListQuerySet(datastructures.SortedDict):
+class ListQuerySet(OrderedDict):
     # Workaround for https://github.com/toastdriven/django-tastypie/pull/670
     query = Query()
 
@@ -69,20 +69,20 @@ class ListQuerySet(datastructures.SortedDict):
 
         # pk optimization
         if 'pk' in kwargs:
-            pk = unicode(self._process_filter_value(kwargs.pop('pk')))
+            pk = str(self._process_filter_value(kwargs.pop('pk')))
             if pk in result:
-                result = ListQuerySet([(unicode(pk), result[pk])])
+                result = ListQuerySet([(str(pk), result[pk])])
             # Sometimes None is passed as a pk to not filter by pk
             elif pk is not None:
                 result = ListQuerySet()
 
-        for field, value in kwargs.iteritems():
+        for field, value in kwargs.items():
             value = self._process_filter_value(value)
             if constants.LOOKUP_SEP in field:
                 raise tastypie_exceptions.InvalidFilterError("Unsupported filter: (%s, %s)" % (field, value))
 
             try:
-                result = ListQuerySet([(unicode(obj.pk), obj) for obj in result.itervalues() if getattr(obj, field) == value])
+                result = ListQuerySet([(str(obj.pk), obj) for obj in result.values() if getattr(obj, field) == value])
             except AttributeError as ex:
                 raise tastypie_exceptions.InvalidFilterError(ex)
 
@@ -120,14 +120,14 @@ class ListQuerySet(datastructures.SortedDict):
                 reverse = False
 
             try:
-                result = [(unicode(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
+                result = [(str(obj.pk), obj) for obj in sorted(result, key=self.attrgetter(field), reverse=reverse)]
             except (AttributeError, IndexError) as ex:
                 raise tastypie_exceptions.InvalidSortError(ex)
 
         return ListQuerySet(result)
 
     def __iter__(self):
-        return self.itervalues()
+        return iter(self.values())
 
     def __reversed__(self):
         for key in reversed(self.keyOrder):
@@ -136,15 +136,15 @@ class ListQuerySet(datastructures.SortedDict):
     def __getitem__(self, key):
         # Tastypie access object_list[0], so we pretend to be
         # a list here (order is same as our iteration order)
-        if isinstance(key, (int, long)):
-            return itertools.islice(self, key, key + 1).next()
+        if isinstance(key, (int, int)):
+            return next(itertools.islice(self, key, key + 1))
         # Tastypie also access sliced object_list in paginator
         elif isinstance(key, slice):
             return itertools.islice(self, key.start, key.stop, key.step)
         else:
             # We could convert silently to unicode here, but it is
             # better to check to find possible errors in program logic
-            assert isinstance(key, unicode), key
+            assert isinstance(key, str), key
             return super(ListQuerySet, self).__getitem__(key)
 
 
@@ -156,14 +156,14 @@ def trim(docstring):
     # and split into a list of lines:
     lines = docstring.expandtabs().splitlines()
     # Determine minimum indentation (first line doesn't count):
-    indent = sys.maxint
+    indent = sys.maxsize
     for line in lines[1:]:
         stripped = line.lstrip()
         if stripped:
             indent = min(indent, len(line) - len(stripped))
     # Remove indentation (first line is special):
     trimmed = [lines[0].strip()]
-    if indent < sys.maxint:
+    if indent < sys.maxsize:
         for line in lines[1:]:
             trimmed.append(line[indent:].rstrip())
     # Strip off trailing and leading blank lines:
@@ -202,7 +202,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         include_fields = getattr(new_class._meta, 'fields', [])
         excludes = getattr(new_class._meta, 'excludes', [])
 
-        field_names = new_class.base_fields.keys()
+        field_names = list(new_class.base_fields.keys())
 
         for field_name in field_names:
             if field_name == 'resource_uri':
@@ -239,7 +239,7 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
             del(new_class.base_fields['resource_type'])
 
         seen_types = set()
-        for typ, resource in type_map.iteritems():
+        for typ, resource in type_map.items():
             if resource == 'self':
                 type_map[typ] = new_class
                 break
@@ -268,12 +268,10 @@ class MongoEngineModelDeclarativeMetaclass(resources.ModelDeclarativeMetaclass):
         return new_class
 
 
-class MongoEngineResource(resources.ModelResource):
+class MongoEngineResource(with_metaclass(MongoEngineModelDeclarativeMetaclass, resources.ModelResource)):
     """
     Adaptation of ``ModelResource`` to MongoEngine.
     """
-
-    __metaclass__ = MongoEngineModelDeclarativeMetaclass
 
     def get_via_uri(self, uri, request=None):
         """
@@ -290,14 +288,14 @@ class MongoEngineResource(resources.ModelResource):
         except (NotFound, Resolver404):
             # if this is a polymorphic resource check the uri against the resources in self._meta.polymorphic
             type_map = getattr(self._meta, 'polymorphic', {})
-            for type_, resource in type_map.iteritems():
+            for type_, resource in type_map.items():
                 try:
                     return resource().get_via_uri(uri, request)
                 except (NotFound, Resolver404):
                     pass
             # the uri wasn't found at any of the polymorphic resources, it is an incorrect URI for this resource
             raise
-        except Exception, e:
+        except Exception as e:
             raise e
 
     # Data preparation.
@@ -311,7 +309,7 @@ class MongoEngineResource(resources.ModelResource):
         base = super(MongoEngineResource, self).base_urls()
 
         embedded_urls = []
-        embedded = (name for name, obj in self.fields.iteritems() if isinstance(obj, tastypie_mongoengine_fields.EmbeddedListField))
+        embedded = (name for name, obj in self.fields.items() if isinstance(obj, tastypie_mongoengine_fields.EmbeddedListField))
 
         for name in embedded:
             embedded_urls.extend((
@@ -433,7 +431,7 @@ class MongoEngineResource(resources.ModelResource):
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).get_schema(request, **kwargs))
 
     def _get_resource_from_class(self, type_map, cls):
-        for resource in type_map.itervalues():
+        for resource in type_map.values():
             if resource._meta.object_class is cls:
                 return resource
         raise KeyError(cls)
@@ -443,7 +441,7 @@ class MongoEngineResource(resources.ModelResource):
         # that we do not miss real match, so if self._meta.object_class
         # matches, we still check other items, otherwise we return immediately
         res = None
-        for typ, resource in type_map.iteritems():
+        for typ, resource in type_map.items():
             if resource._meta.object_class is cls:
                 if resource._meta.object_class is self._meta.object_class:
                     res = typ
@@ -485,7 +483,7 @@ class MongoEngineResource(resources.ModelResource):
         # We redo check for required fields as Tastypie is not
         # reliable as it does checks in an inconsistent way
         # (https://github.com/toastdriven/django-tastypie/issues/491)
-        for field_object in self.fields.itervalues():
+        for field_object in self.fields.values():
             if field_object.readonly or getattr(field_object, '_primary_key', False):
                 continue
 
@@ -534,7 +532,7 @@ class MongoEngineResource(resources.ModelResource):
     def build_schema(self):
         data = super(MongoEngineResource, self).build_schema()
 
-        for field_name, field_object in self.fields.items():
+        for field_name, field_object in list(self.fields.items()):
             # We process ListField specially here (and not use field's
             # build_schema) so that Tastypie's ListField can be used
             if isinstance(field_object, tastypie_fields.ListField):
@@ -557,7 +555,7 @@ class MongoEngineResource(resources.ModelResource):
             return data
 
         data.update({
-            'resource_types': type_map.keys(),
+            'resource_types': list(type_map.keys()),
         })
 
         return data
@@ -611,7 +609,7 @@ class MongoEngineResource(resources.ModelResource):
             raise tastypie_exceptions.NotFound("A document instance matching the provided arguments could not be found.")
 
     def create_identifier(self, obj):
-        return unicode(obj.pk)
+        return str(obj.pk)
 
     def save(self, bundle, skip_errors=False):
         try:
@@ -623,7 +621,7 @@ class MongoEngineResource(resources.ModelResource):
         # Our related documents are not stored in a queryset, but a list,
         # so we have to manually build a list, set it, and save
 
-        for field_name, field_object in self.fields.items():
+        for field_name, field_object in list(self.fields.items()):
             if not getattr(field_object, 'is_m2m', False):
                 continue
 
@@ -697,7 +695,7 @@ class MongoEngineResource(resources.ModelResource):
         if not cls._meta.object_class:
             return final_fields
 
-        for name, f in cls._meta.object_class._fields.iteritems():
+        for name, f in cls._meta.object_class._fields.items():
             # If the field name is already present, skip
             if name in cls.base_fields:
                 continue
@@ -722,7 +720,7 @@ class MongoEngineResource(resources.ModelResource):
                 'attribute': name,
                 'unique': f.unique or primary_key,
                 'null': not f.required and not primary_key,
-                'help_text': f.help_text,
+                'help_text': getattr(f, 'help_text', None),
             }
 
             # If field is not required, it does not matter if set default value,
@@ -790,7 +788,7 @@ class MongoEngineListResource(MongoEngineResource):
         self.parent = self._parent(api_name)
 
         # Validate the fields and set primary key if needed
-        for field_name, field in self._meta.object_class._fields.iteritems():
+        for field_name, field in self._meta.object_class._fields.items():
             if field.primary_key:
                 # Ensure only one primary key is set
                 current_pk = getattr(self._meta, 'id_field', None)
@@ -842,7 +840,7 @@ class MongoEngineListResource(MongoEngineResource):
             for obj in getattr(self.instance, self.attribute):
                 pk = getattr(obj, pk_field)
                 obj.__class__.pk = tastypie_mongoengine_fields.link_property(pk_field)
-                object_list.append((unicode(pk), obj))
+                object_list.append((str(pk), obj))
             return ListQuerySet(object_list)
 
         else:
@@ -850,13 +848,13 @@ class MongoEngineListResource(MongoEngineResource):
                 obj.pk = index
                 return obj
 
-            return ListQuerySet([(unicode(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
+            return ListQuerySet([(str(index), add_index(index, obj)) for index, obj in enumerate(getattr(self.instance, self.attribute))])
 
     def obj_create(self, bundle, **kwargs):
         try:
             bundle.obj = self._meta.object_class()
 
-            for key, value in kwargs.items():
+            for key, value in list(kwargs.items()):
                 setattr(bundle.obj, key, value)
 
             bundle = self.full_hydrate(bundle)
@@ -937,7 +935,7 @@ class MongoEngineListResource(MongoEngineResource):
             object_list.pop(self.find_embedded_document(object_list, pk_field, obj.pk))
 
         # Make sure to delete FileField files
-        for fieldname, field in obj._fields.items():
+        for fieldname, field in list(obj._fields.items()):
             if isinstance(field, mongoengine_fields.FileField):
                 obj[fieldname].delete()
 

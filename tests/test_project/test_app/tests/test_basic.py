@@ -1,6 +1,10 @@
+from future import standard_library
+standard_library.install_aliases()
+from builtins import range
+from builtins import object
 from __future__ import with_statement
 
-import urlparse
+import urllib.parse
 
 from django.core import exceptions, urlresolvers
 from django.test import client, utils
@@ -36,8 +40,8 @@ class BasicTest(test_runner.MongoEngineTestCase):
         return urlresolvers.reverse('api_dispatch_detail', kwargs={'api_name': self.api_name, 'resource_name': resource_name, 'pk': resource_pk})
 
     def fullURItoAbsoluteURI(self, uri):
-        scheme, netloc, path, query, fragment = urlparse.urlsplit(uri)
-        return urlparse.urlunsplit((None, None, path, query, fragment))
+        scheme, netloc, path, query, fragment = urllib.parse.urlsplit(uri)
+        return urllib.parse.urlunsplit((None, None, path, query, fragment))
 
     def test_basic(self):
         # Testing POST
@@ -1178,7 +1182,7 @@ class BasicTest(test_runner.MongoEngineTestCase):
     def test_polymorphic_duplicate_class(self):
         with self.assertRaises(exceptions.ImproperlyConfigured):
             class DuplicateSubtypePersonResource(tastypie_mongoengine_resources.MongoEngineResource):
-                class Meta:
+                class Meta(object):
                     queryset = documents.Person.objects.all()
                     allowed_methods = ('get', 'post', 'put', 'patch', 'delete')
                     authorization = tastypie_authorization.Authorization()

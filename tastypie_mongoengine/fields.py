@@ -1,3 +1,4 @@
+from builtins import object
 import tastypie
 from tastypie import bundle as tastypie_bundle, exceptions, fields
 
@@ -175,7 +176,7 @@ class EmbeddedListField(BuildRelatedMixin, fields.ToManyField):
             return data
 
         data['embedded'].update({
-            'resource_types': type_map.keys(),
+            'resource_types': list(type_map.keys()),
         })
 
         return data
@@ -304,7 +305,7 @@ class ReferencedListField(TastypieMongoengineMixin, fields.ToManyField):
         # We are ignoring any extra fields not present in resource
         # We delete them because otherwise resource_from_data fail
         # when using getattr and they are missing in resource
-        for k in data.keys():
+        for k in list(data.keys()):
             if not hasattr(fk_resource, k):
                 del data[k]
 
