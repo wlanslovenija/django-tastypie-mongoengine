@@ -717,12 +717,16 @@ class MongoEngineResource(resources.ModelResource):
             api_field_class = cls.api_field_from_mongo_field(f)
 
             primary_key = f.primary_key or name == getattr(cls._meta, 'id_field', 'id')
+            
+            help_text = None
+            if hasattr(f,'help_text'):
+                help_text = f.help_text
 
             kwargs = {
                 'attribute': name,
                 'unique': f.unique or primary_key,
                 'null': not f.required and not primary_key,
-                'help_text': f.help_text,
+                'help_text': help_text,
             }
 
             # If field is not required, it does not matter if set default value,
