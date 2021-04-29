@@ -422,10 +422,10 @@ class MongoEngineResource(resources.ModelResource):
             the_method = request.method.lower()
 
         if not request.body:
-            assert the_method not in ('put', 'post', 'patch'), the_method
+            assert the_method not in ('put', 'post', 'patch', 'delete'), the_method
             return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
 
-        assert the_method in ('put', 'post', 'patch'), the_method + ":" + request.body
+        assert the_method in ('put', 'post', 'patch', 'delete'), the_method + ":" + request.body
 
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 
@@ -717,12 +717,16 @@ class MongoEngineResource(resources.ModelResource):
             api_field_class = cls.api_field_from_mongo_field(f)
 
             primary_key = f.primary_key or name == getattr(cls._meta, 'id_field', 'id')
+            
+            help_text = None
+            if hasattr(f,'help_text'):
+                help_text = f.help_text
 
             kwargs = {
                 'attribute': name,
                 'unique': f.unique or primary_key,
                 'null': not f.required and not primary_key,
-                'help_text': f.help_text,
+                'help_text': help_text,
             }
 
             # If field is not required, it does not matter if set default value,
