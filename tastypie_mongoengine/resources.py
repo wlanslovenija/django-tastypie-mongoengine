@@ -422,10 +422,10 @@ class MongoEngineResource(resources.ModelResource):
             the_method = request.method.lower()
 
         if not request.body:
-            assert the_method not in ('put', 'post', 'patch'), the_method
+            assert the_method not in ('put', 'post', 'patch', 'delete'), the_method
             return super(MongoEngineResource, self).dispatch(request_type, request, **kwargs)
 
-        assert the_method in ('put', 'post', 'patch'), the_method + ":" + request.body
+        assert the_method in ('put', 'post', 'patch', 'delete'), the_method + ":" + request.body
 
         return self._wrap_request(request, lambda: super(MongoEngineResource, self).dispatch(request_type, request, **kwargs))
 
